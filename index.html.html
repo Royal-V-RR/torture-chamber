@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Royal V's Image Torture Chamber</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0710;
+    --panel: #16101c;
+    --panel-2: #1e1524;
+    --line: #33222f;
+    --bone: #f3ece3;
+    --muted: #9c8b96;
+    --red: #ff2e4d;
+    --red-dim: #7a1626;
+    --green: #45ffa0;
+    --amber: #ffb020;
+    --shadow: 0 10px 30px rgba(0,0,0,0.45);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at top, #1c1220 0%, var(--bg) 55%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 3px);
+    color: var(--bone);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    min-height:100vh;
+    padding: 28px 16px 80px;
+  }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+
+  /* ---------- header ---------- */
+  header{ text-align:center; margin-bottom: 28px; }
+  .stripe{
+    display:inline-block;
+    background: repeating-linear-gradient(45deg, var(--amber), var(--amber) 10px, #171017 10px, #171017 20px);
+    height: 6px; width: 100%; max-width: 560px; border-radius:3px; opacity:0.85;
+    margin-bottom: 18px;
+  }
+  h1.glitch{
+    font-family:'Bungee', system-ui, sans-serif;
+    font-size: clamp(1.5rem, 5vw, 3.1rem);
+    letter-spacing: 1px;
+    margin: 0;
+    color: var(--bone);
+    position: relative;
+    display:inline-block;
+    text-shadow: 0 0 18px rgba(255,46,77,0.25);
+  }
+  h1.glitch::before, h1.glitch::after{
+    content: attr(data-text);
+    position:absolute; left:0; top:0; width:100%; height:100%;
+    overflow:hidden; background: transparent;
+  }
+  h1.glitch::before{
+    color: var(--red);
+    clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+    transform: translate(-2px,-1px);
+    animation: glitchA 4.5s infinite steps(1);
+  }
+  h1.glitch::after{
+    color: var(--green);
+    clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
+    transform: translate(2px,1px);
+    animation: glitchB 4.5s infinite steps(1);
+  }
+  @keyframes glitchA{
+    0%,88%{ transform: translate(-2px,-1px); opacity:0.8;}
+    89%{ transform: translate(4px,1px); opacity:1;}
+    91%{ transform: translate(-5px,1px);}
+    93%{ transform: translate(2px,-2px);}
+    95%,100%{ transform: translate(-2px,-1px); opacity:0.8;}
+  }
+  @keyframes glitchB{
+    0%,88%{ transform: translate(2px,1px); opacity:0.8;}
+    89%{ transform: translate(-3px,-2px); opacity:1;}
+    91%{ transform: translate(4px,-1px);}
+    93%{ transform: translate(-2px,2px);}
+    95%,100%{ transform: translate(2px,1px); opacity:0.8;}
+  }
+  .subtitle{
+    color: var(--muted); font-family:'JetBrains Mono', monospace;
+    font-size: 0.85rem; margin-top: 10px; letter-spacing: 0.5px;
+  }
+  .subtitle .by{ color: var(--red); }
+
+  /* ---------- upload zone ---------- */
+  .upload-zone{
+    max-width: 640px; margin: 0 auto;
+    border: 2px dashed var(--line);
+    border-radius: 14px;
+    padding: 54px 24px;
+    text-align:center;
+    background: var(--panel);
+    cursor:pointer;
+    transition: border-color .15s ease, background .15s ease, transform .15s ease;
+  }
+  .upload-zone:hover, .upload-zone.drag{
+    border-color: var(--red);
+    background: #1c1220;
+    transform: translateY(-2px);
+  }
+  .upload-zone .icon{ font-size: 2.6rem; margin-bottom: 10px; display:block; }
+  .upload-zone h2{ font-family:'Bungee'; font-size:1rem; font-weight:400; margin: 6px 0; letter-spacing:0.5px; }
+  .upload-zone p{ color: var(--muted); font-size:0.85rem; margin:4px 0 0; }
+
+  /* ---------- workshop layout ---------- */
+  .workshop{ max-width: 1180px; margin: 26px auto 0; }
+  .tabs{
+    display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
+    margin-bottom: 20px;
+  }
+  .tab-btn{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    display:flex; align-items:center; gap:7px;
+    transition: all .12s ease;
+    white-space:nowrap;
+  }
+  .tab-btn:hover{ color: var(--bone); border-color:#4a3345; }
+  .tab-btn.active{
+    background: linear-gradient(180deg, #2a0f18, #1a0a10);
+    border-color: var(--red);
+    color: var(--bone);
+    box-shadow: inset 0 0 0 1px rgba(255,46,77,0.25), 0 0 14px rgba(255,46,77,0.15);
+  }
+
+  .stage{
+    display:grid;
+    grid-template-columns: minmax(280px, 1.15fr) minmax(260px, 0.85fr);
+    gap: 20px;
+    align-items:start;
+  }
+  @media (max-width: 820px){ .stage{ grid-template-columns: 1fr; } }
+
+  .canvas-card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+  .canvas-frame{
+    background:
+      linear-gradient(45deg, #221a26 25%, transparent 25%),
+      linear-gradient(-45deg, #221a26 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #221a26 75%),
+      linear-gradient(-45deg, transparent 75%, #221a26 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    background-color: #100a14;
+    border-radius: 10px;
+    overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    min-height: 260px;
+  }
+  #viewCanvas{ max-width:100%; display:block; }
+  .loading-flag{
+    position:absolute; inset:14px; display:none; align-items:center; justify-content:center;
+    background: rgba(11,7,16,0.55); border-radius:10px; backdrop-filter: blur(1px);
+    font-family:'JetBrains Mono'; color: var(--amber); font-size:0.85rem; letter-spacing:1px;
+  }
+  .loading-flag.show{ display:flex; }
+  .tagline{
+    font-family:'JetBrains Mono'; font-size:0.78rem; color: var(--muted);
+    margin: 12px 2px 0; text-align:center;
+  }
+
+  /* pain-o-meter gauge */
+  .gauge-wrap{ display:flex; align-items:center; gap:12px; margin-top:14px; padding: 0 2px; }
+  .gauge-wrap svg{ flex:none; }
+  .gauge-label{ font-family:'JetBrains Mono'; font-size:0.72rem; color: var(--muted); letter-spacing:1px; }
+  .gauge-value{ font-family:'Bungee'; font-size:1rem; color: var(--bone); }
+
+  .controls-card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: var(--shadow);
+  }
+  .controls-card h3{
+    font-family:'Bungee'; font-weight:400; font-size:0.85rem;
+    margin: 0 0 14px; color: var(--bone); letter-spacing:0.5px;
+  }
+  .presets{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
+  .preset-btn{
+    font-family:'JetBrains Mono'; font-size:0.72rem;
+    background: var(--panel-2); border:1px solid var(--line); color:var(--bone);
+    padding:6px 10px; border-radius:6px; cursor:pointer;
+  }
+  .preset-btn:hover{ border-color: var(--amber); color: var(--amber); }
+
+  .field{ margin-bottom: 16px; }
+  .field-top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+  .field label{ font-size:0.82rem; color:var(--bone); }
+  .field .val{ font-family:'JetBrains Mono'; font-size:0.75rem; color: var(--green); }
+  input[type=range]{
+    -webkit-appearance:none; width:100%; height:6px; border-radius:3px;
+    background: var(--panel-2); outline:none; border:1px solid var(--line);
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:16px; height:16px; border-radius:50%;
+    background: var(--red); cursor:pointer; border: 2px solid #2a0f18;
+    box-shadow: 0 0 8px rgba(255,46,77,0.6);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:16px; height:16px; border-radius:50%; background: var(--red);
+    cursor:pointer; border: 2px solid #2a0f18;
+  }
+  .checkbox-field{ display:flex; align-items:center; gap:10px; }
+  .checkbox-field input{ width:18px; height:18px; accent-color: var(--red); cursor:pointer; }
+  select.select-field{
+    width:100%; background: var(--panel-2); color: var(--bone); border:1px solid var(--line);
+    border-radius:6px; padding:8px; font-family:'JetBrains Mono'; font-size:0.8rem;
+  }
+
+  .actions{
+    display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top: 22px;
+  }
+  .actions button{
+    font-family:'JetBrains Mono'; font-size:0.8rem;
+    padding: 11px 16px; border-radius:8px; cursor:pointer;
+    background: var(--panel-2); border:1px solid var(--line); color: var(--bone);
+    transition: all .12s ease;
+  }
+  .actions button:hover{ border-color:#4a3345; transform: translateY(-1px); }
+  .actions button.primary{
+    background: linear-gradient(180deg, var(--red), #c21f39);
+    border-color: transparent; color:#fff; font-weight:600;
+  }
+  .actions button.primary:hover{ box-shadow: 0 0 16px rgba(255,46,77,0.45); }
+  .actions button:disabled{ opacity:0.4; cursor:not-allowed; transform:none; }
+
+  footer{
+    text-align:center; margin-top: 50px; color: var(--muted);
+    font-family:'JetBrains Mono'; font-size:0.72rem; line-height:1.7;
+  }
+  footer .warn{ color: var(--amber); }
+
+  @media (prefers-reduced-motion: reduce){
+    h1.glitch::before, h1.glitch::after{ animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="stripe"></span>
+  <h1 class="glitch" data-text="ROYAL V'S IMAGE TORTURE CHAMBER">ROYAL V'S IMAGE TORTURE CHAMBER</h1>
+  <p class="subtitle">bring an image. leave with evidence. <span class="by">est. today, in a browser tab</span></p>
+</header>
+
+<div class="upload-zone" id="dropZone">
+  <input type="file" id="fileInput" accept="image/*" hidden>
+  <span class="icon">🩻</span>
+  <h2>DROP A VICTIM HERE</h2>
+  <p>or click to choose a file — nothing leaves your browser</p>
+</div>
+
+<div class="workshop" id="workshop" hidden>
+  <nav class="tabs" id="tabs"></nav>
+
+  <div class="stage">
+    <div class="canvas-card">
+      <div class="canvas-frame">
+        <canvas id="viewCanvas"></canvas>
+        <div class="loading-flag" id="loadingFlag">⚙ processing…</div>
+      </div>
+      <p class="tagline" id="tagline"></p>
+      <div class="gauge-wrap">
+        <svg id="gaugeSvg" width="76" height="46" viewBox="0 0 76 46">
+          <path d="M4,42 A34,34 0 0 1 72,42" fill="none" stroke="#2a1f28" stroke-width="6" stroke-linecap="round"/>
+          <path id="gaugeArc" d="M4,42 A34,34 0 0 1 72,42" fill="none" stroke="url(#gaugeGrad)" stroke-width="6" stroke-linecap="round"/>
+          <defs>
+            <linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#45ffa0"/>
+              <stop offset="55%" stop-color="#ffb020"/>
+              <stop offset="100%" stop-color="#ff2e4d"/>
+            </linearGradient>
+          </defs>
+          <line id="gaugeNeedle" x1="38" y1="42" x2="38" y2="14" stroke="#f3ece3" stroke-width="2" stroke-linecap="round" transform="rotate(-90 38 42)"/>
+          <circle cx="38" cy="42" r="3" fill="#f3ece3"/>
+        </svg>
+        <div>
+          <div class="gauge-label">PAIN-O-METER</div>
+          <div class="gauge-value mono" id="gaugeValue">0%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls-card">
+      <h3 id="controlsTitle">CONTROLS</h3>
+      <div class="presets" id="presetsRow"></div>
+      <div id="controlsPanel"></div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button id="randomizeBtn">🎲 pull the lever</button>
+    <button id="resetBtn">↺ reset this tab</button>
+    <button id="newImageBtn">🖼 new victim</button>
+    <button id="downloadBtn" class="primary">⬇ download</button>
+  </div>
+</div>
+
+<footer>
+  everything is processed locally on-device with the canvas API — no uploads, no server, no survivors.<br>
+  <span class="warn">side effects may include:</span> nostalgia, headaches, and images you can no longer un-see.
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================ helpers ============================ */
+  function clamp(v){ return v < 0 ? 0 : v > 255 ? 255 : v; }
+
+  function loadImageEl(src){
+    return new Promise((resolve, reject)=>{
+      const img = new Image();
+      img.onload = ()=>resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  function newCanvas(w,h){
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    return c;
+  }
+
+  function cloneCanvas(src){
+    const c = newCanvas(src.width, src.height);
+    c.getContext('2d').drawImage(src,0,0);
+    return c;
+  }
+
+  function boxBlur(data, w, h, radius){
+    const out = new Uint8ClampedArray(data.length);
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        let r=0,g=0,b=0,a=0,count=0;
+        for(let dy=-radius; dy<=radius; dy++){
+          const yy = y+dy; if(yy<0||yy>=h) continue;
+          for(let dx=-radius; dx<=radius; dx++){
+            const xx = x+dx; if(xx<0||xx>=w) continue;
+            const idx = (yy*w+xx)*4;
+            r+=data[idx]; g+=data[idx+1]; b+=data[idx+2]; a+=data[idx+3]; count++;
+          }
+        }
+        const idx=(y*w+x)*4;
+        out[idx]=r/count; out[idx+1]=g/count; out[idx+2]=b/count; out[idx+3]=a/count;
+      }
+    }
+    return out;
+  }
+
+  function convolve3x3(data, w, h, kernel, factor, bias){
+    const out = new Uint8ClampedArray(data.length);
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        let r=0,g=0,b=0,k=0;
+        for(let dy=-1; dy<=1; dy++){
+          for(let dx=-1; dx<=1; dx++){
+            const yy = Math.min(h-1, Math.max(0, y+dy));
+            const xx = Math.min(w-1, Math.max(0, x+dx));
+            const idx = (yy*w+xx)*4;
+            const kv = kernel[k++];
+            r += data[idx]*kv; g += data[idx+1]*kv; b += data[idx+2]*kv;
+          }
+        }
+        const idx=(y*w+x)*4;
+        out[idx]=clamp(r*factor+bias);
+        out[idx+1]=clamp(g*factor+bias);
+        out[idx+2]=clamp(b*factor+bias);
+        out[idx+3]=data[idx+3];
+      }
+    }
+    return out;
+  }
+
+  function drawLensFlares(ctx, w, h){
+    const spots = [[w*0.24,h*0.28,0.16],[w*0.72,h*0.62,0.11],[w*0.52,h*0.14,0.07]];
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    spots.forEach(([x,y,rf])=>{
+      const r = Math.min(w,h)*rf;
+      const grad = ctx.createRadialGradient(x,y,0,x,y,r);
+      grad.addColorStop(0,'rgba(255,255,225,0.95)');
+      grad.addColorStop(0.35,'rgba(255,210,110,0.5)');
+      grad.addColorStop(1,'rgba(255,210,110,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  function drawStickers(ctx, w, h){
+    const emojis = ['🅱️','😩','💯','👁️','🔥','😳'];
+    const spots = [[w*0.14,h*0.16,-0.25],[w*0.86,h*0.85,0.3],[w*0.85,h*0.16,0.15]];
+    ctx.save();
+    ctx.textBaseline='middle'; ctx.textAlign='center';
+    ctx.font = Math.max(18, Math.round(Math.min(w,h)*0.13)) + 'px sans-serif';
+    spots.forEach(([x,y,rot])=>{
+      const e = emojis[Math.floor(Math.random()*emojis.length)];
+      ctx.save();
+      ctx.translate(x,y);
+      ctx.rotate(rot);
+      ctx.fillText(e,0,0);
+      ctx.restore();
+    });
+    ctx.restore();
+  }
+
+  /* ============================ effects ============================ */
+
+  async function applyJPEGify(canvas, p){
+    let cur = canvas;
+    const w = canvas.width, h = canvas.height;
+    for(let i=0;i<p.iterations;i++){
+      const url = cur.toDataURL('image/jpeg', Math.max(0.01, p.quality/100));
+      const img = await loadImageEl(url);
+      const c2 = newCanvas(w,h);
+      c2.getContext('2d').drawImage(img,0,0,w,h);
+      cur = c2;
+    }
+    return cur;
+  }
+
+  async function applyDeepFry(canvas, p){
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+
+    let imgData = ctx.getImageData(0,0,w,h);
+    let d = imgData.data;
+
+    // warm tint
+    for(let i=0;i<d.length;i+=4){
+      d[i]   = clamp(d[i]   + p.warmth*0.6);
+      d[i+2] = clamp(d[i+2] - p.warmth*0.4);
+    }
+    // saturation (luminance-anchored push)
+    const satF = 1 + p.saturation/45;
+    for(let i=0;i<d.length;i+=4){
+      const r=d[i], g=d[i+1], b=d[i+2];
+      const gray = 0.299*r + 0.587*g + 0.114*b;
+      d[i]   = clamp(gray + (r-gray)*satF);
+      d[i+1] = clamp(gray + (g-gray)*satF);
+      d[i+2] = clamp(gray + (b-gray)*satF);
+    }
+    // contrast
+    const contF = 1 + p.contrast/45;
+    for(let i=0;i<d.length;i+=4){
+      d[i]   = clamp((d[i]  -128)*contF+128);
+      d[i+1] = clamp((d[i+1]-128)*contF+128);
+      d[i+2] = clamp((d[i+2]-128)*contF+128);
+    }
+    ctx.putImageData(imgData,0,0);
+
+    // sharpen passes (unsharp mask)
+    for(let s=0; s<p.sharpen; s++){
+      imgData = ctx.getImageData(0,0,w,h);
+      const dd = imgData.data;
+      const blurred = boxBlur(dd, w, h, 2);
+      for(let i=0;i<dd.length;i+=4){
+        dd[i]   = clamp(dd[i]   + (dd[i]  -blurred[i]  )*0.65);
+        dd[i+1] = clamp(dd[i+1] + (dd[i+1]-blurred[i+1])*0.65);
+        dd[i+2] = clamp(dd[i+2] + (dd[i+2]-blurred[i+2])*0.65);
+      }
+      ctx.putImageData(imgData,0,0);
+    }
+
+    // grain
+    if(p.noise > 0){
+      imgData = ctx.getImageData(0,0,w,h);
+      const dn = imgData.data;
+      for(let i=0;i<dn.length;i+=4){
+        const n = (Math.random()-0.5)*p.noise*2.6;
+        dn[i]=clamp(dn[i]+n); dn[i+1]=clamp(dn[i+1]+n); dn[i+2]=clamp(dn[i+2]+n);
+      }
+      ctx.putImageData(imgData,0,0);
+    }
+
+    if(p.lensFlare) drawLensFlares(ctx,w,h);
+    if(p.stickers) drawStickers(ctx,w,h);
+
+    // jpeg recompression loop
+    let cur = canvas;
+    for(let i=0;i<p.jpegPasses;i++){
+      const url = cur.toDataURL('image/jpeg', Math.max(0.01, p.jpegQuality/100));
+      const img = await loadImageEl(url);
+      const c2 = newCanvas(w,h);
+      c2.getContext('2d').drawImage(img,0,0,w,h);
+      cur = c2;
+    }
+    return cur;
+  }
+
+  function applyPixelate(canvas, p){
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const bw = Math.max(1, Math.round(w/p.blockSize));
+    const bh = Math.max(1, Math.round(h/p.blockSize));
+    const tmp = newCanvas(bw,bh);
+    const tctx = tmp.getContext('2d');
+    tctx.imageSmoothingEnabled = true;
+    tctx.drawImage(canvas,0,0,bw,bh);
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0,0,w,h);
+    ctx.drawImage(tmp,0,0,bw,bh,0,0,w,h);
+    return canvas;
+  }
+
+  function applyPosterize(canvas, p){
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const imgData = ctx.getImageData(0,0,w,h);
+    const d = imgData.data;
+    const levels = p.levels;
+    const step = 255/(levels-1);
+    for(let i=0;i<d.length;i+=4){
+      d[i]   = clamp(Math.round(Math.round(d[i]  /step)*step));
+      d[i+1] = clamp(Math.round(Math.round(d[i+1]/step)*step));
+      d[i+2] = clamp(Math.round(Math.round(d[i+2]/step)*step));
+    }
+    ctx.putImageData(imgData,0,0);
+    return canvas;
+  }
+
+  function applyGlitch(canvas, p){
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+
+    if(p.rgbShift > 0){
+      const imgData = ctx.getImageData(0,0,w,h);
+      const src = new Uint8ClampedArray(imgData.data);
+      const d = imgData.data;
+      const shift = p.rgbShift;
+      for(let y=0;y<h;y++){
+        for(let x=0;x<w;x++){
+          const idx=(y*w+x)*4;
+          const rx = Math.min(w-1, Math.max(0, x-shift));
+          const bx = Math.min(w-1, Math.max(0, x+shift));
+          d[idx]   = src[(y*w+rx)*4];
+          d[idx+2] = src[(y*w+bx)*4+2];
+        }
+      }
+      ctx.putImageData(imgData,0,0);
+    }
+
+    if(p.sliceCount > 0 && p.maxShift > 0){
+      const snapshot = ctx.getImageData(0,0,w,h);
+      const sliceH = Math.max(2, Math.floor(h/p.sliceCount));
+      for(let y=0; y<h; y+=sliceH){
+        const sh = Math.min(sliceH, h-y);
+        const shift = Math.round((Math.random()-0.5)*2*p.maxShift);
+        const stripCanvas = newCanvas(w, sh);
+        stripCanvas.getContext('2d').putImageData(snapshot, 0, -y);
+        ctx.drawImage(stripCanvas, 0,0,w,sh, shift, y, w, sh);
+      }
+    }
+
+    if(p.scanlines){
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      for(let y=0;y<h;y+=2) ctx.fillRect(0,y,w,1);
+    }
+    return canvas;
+  }
+
+  function applyVHS(canvas, p){
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+
+    if(p.chromaShift > 0){
+      const imgData = ctx.getImageData(0,0,w,h);
+      const src = new Uint8ClampedArray(imgData.data);
+      const d = imgData.data;
+      for(let y=0;y<h;y++){
+        for(let x=0;x<w;x++){
+          const idx=(y*w+x)*4;
+          const rx = Math.min(w-1, Math.max(0, x-p.chromaShift));
+          const bx = Math.min(w-1, Math.max(0, x+p.chromaShift));
+          d[idx]   = src[(y*w+rx)*4];
+          d[idx+2] = src[(y*w+bx)*4+2];
+        }
+      }
+      ctx.putImageData(imgData,0,0);
+    }
+
+    if(p.tracking > 0){
+      const snap = cloneCanvas(canvas);
+      ctx.clearRect(0,0,w,h);
+      const seed = Math.random()*100;
+      for(let y=0;y<h;y++){
+        const offset = Math.round(Math.sin(y*0.045 + seed) * p.tracking);
+        ctx.drawImage(snap, 0,y,w,1, offset, y, w, 1);
+      }
+    }
+
+    if(p.noise > 0){
+      const imgData = ctx.getImageData(0,0,w,h);
+      const d = imgData.data;
+      for(let i=0;i<d.length;i+=4){
+        const n = (Math.random()-0.5)*p.noise*2;
+        d[i]=clamp(d[i]+n); d[i+1]=clamp(d[i+1]+n); d[i+2]=clamp(d[i+2]+n);
+      }
+      ctx.putImageData(imgData,0,0);
+    }
+
+    if(p.scanlines > 0){
+      ctx.fillStyle = `rgba(0,0,0,${p.scanlines/100})`;
+      for(let y=0;y<h;y+=2) ctx.fillRect(0,y,w,1);
+    }
+
+    if(p.vignette > 0){
+      const grad = ctx.createRadialGradient(w/2,h/2, Math.min(w,h)*0.3, w/2,h/2, Math.max(w,h)*0.7);
+      grad.addColorStop(0,'rgba(0,0,0,0)');
+      grad.addColorStop(1,`rgba(0,0,0,${p.vignette/100})`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0,0,w,h);
+    }
+    return canvas;
+  }
+
+  function applyDither(canvas, p){
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const imgData = ctx.getImageData(0,0,w,h);
+    const d = imgData.data;
+    const levels = p.levels;
+
+    if(!p.color){
+      for(let i=0;i<d.length;i+=4){
+        const gray = 0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+        d[i]=d[i+1]=d[i+2]=gray;
+      }
+    }
+
+    if(p.mode === 'floyd'){
+      const buf = new Float32Array(d.length);
+      buf.set(d);
+      const step = 255/(levels-1);
+      for(let y=0;y<h;y++){
+        for(let x=0;x<w;x++){
+          const idx=(y*w+x)*4;
+          for(let c=0;c<3;c++){
+            const old = buf[idx+c];
+            const nw = clamp(Math.round(Math.round(old/step)*step));
+            buf[idx+c] = nw;
+            const err = old-nw;
+            if(x+1<w) buf[idx+4+c] += err*7/16;
+            if(y+1<h){
+              if(x>0) buf[idx+w*4-4+c] += err*3/16;
+              buf[idx+w*4+c] += err*5/16;
+              if(x+1<w) buf[idx+w*4+4+c] += err*1/16;
+            }
+          }
+        }
+      }
+      for(let i=0;i<d.length;i+=4){
+        d[i]=clamp(buf[i]); d[i+1]=clamp(buf[i+1]); d[i+2]=clamp(buf[i+2]);
+      }
+      ctx.putImageData(imgData,0,0);
+    } else if(p.mode === 'ordered'){
+      const bayer = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+      const step = 255/(levels-1);
+      for(let y=0;y<h;y++){
+        for(let x=0;x<w;x++){
+          const idx=(y*w+x)*4;
+          const t = (bayer[y%4][x%4]/16 - 0.5) * step;
+          for(let c=0;c<3;c++){
+            d[idx+c] = clamp(Math.round(Math.round((d[idx+c]+t)/step)*step));
+          }
+        }
+      }
+      ctx.putImageData(imgData,0,0);
+    } else { // halftone
+      const spacing = p.dotSize;
+      const out = newCanvas(w,h);
+      const octx = out.getContext('2d');
+      octx.fillStyle = '#f3ece3'; octx.fillRect(0,0,w,h);
+      octx.fillStyle = '#0b0710';
+      for(let y=0;y<h;y+=spacing){
+        for(let x=0;x<w;x+=spacing){
+          const sx = Math.min(w-1, x+Math.floor(spacing/2));
+          const sy = Math.min(h-1, y+Math.floor(spacing/2));
+          const idx = (sy*w+sx)*4;
+          const lum = 0.299*d[idx]+0.587*d[idx+1]+0.114*d[idx+2];
+          const radius = (1-lum/255) * (spacing/2) * 1.15;
+          if(radius > 0.35){
+            octx.beginPath();
+            octx.arc(x+spacing/2, y+spacing/2, radius, 0, Math.PI*2);
+            octx.fill();
+          }
+        }
+      }
+      ctx.clearRect(0,0,w,h);
+      ctx.drawImage(out,0,0);
+    }
+    return canvas;
+  }
+
+  function applyChromaAberration(canvas, p){
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const imgData = ctx.getImageData(0,0,w,h);
+    const src = new Uint8ClampedArray(imgData.data);
+    const d = imgData.data;
+    const rad = p.angle*Math.PI/180;
+    const dx = Math.cos(rad)*p.offset, dy = Math.sin(rad)*p.offset;
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        const idx=(y*w+x)*4;
+        const rx = Math.min(w-1, Math.max(0, Math.round(x-dx)));
+        const ry = Math.min(h-1, Math.max(0, Math.round(y-dy)));
+        const bx = Math.min(w-1, Math.max(0, Math.round(x+dx)));
+        const by = Math.min(h-1, Math.max(0, Math.round(y+dy)));
+        d[idx]   = src[(ry*w+rx)*4];
+        d[idx+2] = src[(by*w+bx)*4+2];
+      }
+    }
+    ctx.putImageData(imgData,0,0);
+    return canvas;
+  }
+
+  function applyOilPaint(canvas, p){
+    const w = canvas.width, h = canvas.height;
+    const maxDim = 480;
+    const scale = Math.min(1, maxDim/Math.max(w,h));
+    const sw = Math.max(1, Math.round(w*scale)), sh = Math.max(1, Math.round(h*scale));
+    const small = newCanvas(sw, sh);
+    small.getContext('2d').drawImage(canvas, 0,0, sw, sh);
+
+    const sctx = small.getContext('2d');
+    const imgData = sctx.getImageData(0,0,sw,sh);
+    const d = imgData.data;
+    const radius = p.radius, levels = p.levels;
+    const out = new Uint8ClampedArray(d.length);
+    const cnt = new Array(levels), aR = new Array(levels), aG = new Array(levels), aB = new Array(levels);
+
+    for(let y=0;y<sh;y++){
+      for(let x=0;x<sw;x++){
+        for(let i=0;i<levels;i++){ cnt[i]=0; aR[i]=0; aG[i]=0; aB[i]=0; }
+        for(let dy=-radius; dy<=radius; dy++){
+          const yy=y+dy; if(yy<0||yy>=sh) continue;
+          for(let dx=-radius; dx<=radius; dx++){
+            const xx=x+dx; if(xx<0||xx>=sw) continue;
+            const idx=(yy*sw+xx)*4;
+            const r=d[idx], g=d[idx+1], b=d[idx+2];
+            const inten = Math.min(levels-1, Math.round(((r+g+b)/3)*(levels-1)/255));
+            cnt[inten]++; aR[inten]+=r; aG[inten]+=g; aB[inten]+=b;
+          }
+        }
+        let mi=0, mc=0;
+        for(let i=0;i<levels;i++){ if(cnt[i]>mc){ mc=cnt[i]; mi=i; } }
+        const idx=(y*sw+x)*4;
+        out[idx]=aR[mi]/mc; out[idx+1]=aG[mi]/mc; out[idx+2]=aB[mi]/mc; out[idx+3]=255;
+      }
+    }
+    sctx.putImageData(new ImageData(out, sw, sh), 0, 0);
+
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.clearRect(0,0,w,h);
+    ctx.drawImage(small, 0,0, w,h);
+    return canvas;
+  }
+
+  function applyFilters(canvas, p){
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const imgData = ctx.getImageData(0,0,w,h);
+    const orig = new Uint8ClampedArray(imgData.data);
+    let d = imgData.data;
+
+    if(p.mode === 'grayscale'){
+      for(let i=0;i<d.length;i+=4){ const g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2]; d[i]=d[i+1]=d[i+2]=g; }
+    } else if(p.mode === 'invert'){
+      for(let i=0;i<d.length;i+=4){ d[i]=255-d[i]; d[i+1]=255-d[i+1]; d[i+2]=255-d[i+2]; }
+    } else if(p.mode === 'sepia'){
+      for(let i=0;i<d.length;i+=4){
+        const r=d[i], g=d[i+1], b=d[i+2];
+        d[i]  = clamp(r*0.393+g*0.769+b*0.189);
+        d[i+1]= clamp(r*0.349+g*0.686+b*0.168);
+        d[i+2]= clamp(r*0.272+g*0.534+b*0.131);
+      }
+    } else if(p.mode === 'emboss'){
+      d = convolve3x3(d, w, h, [-2,-1,0,-1,1,1,0,1,2], 1, 128);
+    } else if(p.mode === 'edge'){
+      d = convolve3x3(d, w, h, [-1,-1,-1,-1,8,-1,-1,-1,-1], 1, 0);
+    }
+
+    const mix = p.intensity/100;
+    if(mix < 1){
+      for(let i=0;i<d.length;i+=4){
+        d[i]   = d[i]  *mix + orig[i]  *(1-mix);
+        d[i+1] = d[i+1]*mix + orig[i+1]*(1-mix);
+        d[i+2] = d[i+2]*mix + orig[i+2]*(1-mix);
+      }
+    }
+    imgData.data.set(d);
+    ctx.putImageData(imgData,0,0);
+    return canvas;
+  }
+
+  /* ============================ effect registry ============================ */
+
+  const EFFECTS = [
+    {
+      id:'jpegify', name:'JPEGify', icon:'📠',
+      tagline:'the ancient art of saving as .jpg fifty times in a row',
+      apply: applyJPEGify,
+      params:[
+        {key:'quality', label:'Quality per save', type:'range', min:1, max:100, step:1, default:15, suffix:'%'},
+        {key:'iterations', label:'Number of re-saves', type:'range', min:1, max:30, step:1, default:6},
+      ]
+    },
+    {
+      id:'deepfry', name:'Deep Fryer', icon:'🍳',
+      tagline:'saturation, contrast, and deep regret',
+      apply: applyDeepFry,
+      presets:[
+        {name:'Mild', values:{saturation:18,contrast:14,sharpen:1,noise:5,warmth:10,jpegQuality:60,jpegPasses:1,lensFlare:false,stickers:false}},
+        {name:'Crispy', values:{saturation:55,contrast:40,sharpen:2,noise:15,warmth:25,jpegQuality:22,jpegPasses:2,lensFlare:true,stickers:false}},
+        {name:'Nuclear', values:{saturation:88,contrast:68,sharpen:4,noise:30,warmth:38,jpegQuality:8,jpegPasses:4,lensFlare:true,stickers:true}},
+        {name:'Quantum', values:{saturation:100,contrast:100,sharpen:5,noise:46,warmth:50,jpegQuality:3,jpegPasses:7,lensFlare:true,stickers:true}},
+      ],
+      params:[
+        {key:'saturation', label:'Saturation', type:'range', min:0, max:100, step:1, default:55},
+        {key:'contrast', label:'Contrast', type:'range', min:0, max:100, step:1, default:40},
+        {key:'sharpen', label:'Sharpen passes', type:'range', min:0, max:5, step:1, default:2},
+        {key:'noise', label:'Grain', type:'range', min:0, max:50, step:1, default:15},
+        {key:'warmth', label:'Warm tint', type:'range', min:0, max:60, step:1, default:25},
+        {key:'jpegQuality', label:'JPEG quality', type:'range', min:1, max:100, step:1, default:22},
+        {key:'jpegPasses', label:'JPEG re-saves', type:'range', min:0, max:10, step:1, default:2},
+        {key:'lensFlare', label:'Lens flares', type:'checkbox', default:true},
+        {key:'stickers', label:'Emoji stickers', type:'checkbox', default:false},
+      ]
+    },
+    {
+      id:'pixelate', name:'Pixelate', icon:'🧊',
+      tagline:'delete information on purpose',
+      apply: applyPixelate,
+      params:[
+        {key:'blockSize', label:'Block size', type:'range', min:2, max:60, step:1, default:14, suffix:'px'},
+      ]
+    },
+    {
+      id:'posterize', name:'Posterize', icon:'🎨',
+      tagline:'fewer colors, more feelings',
+      apply: applyPosterize,
+      params:[
+        {key:'levels', label:'Color levels', type:'range', min:2, max:16, step:1, default:4},
+      ]
+    },
+    {
+      id:'glitch', name:'Glitch', icon:'⚡',
+      tagline:'datamosh-adjacent chaos',
+      apply: applyGlitch,
+      params:[
+        {key:'rgbShift', label:'Channel split', type:'range', min:0, max:30, step:1, default:6, suffix:'px'},
+        {key:'sliceCount', label:'Slice count', type:'range', min:0, max:60, step:1, default:18},
+        {key:'maxShift', label:'Slice jitter', type:'range', min:0, max:80, step:1, default:22, suffix:'px'},
+        {key:'scanlines', label:'Scanlines', type:'checkbox', default:true},
+      ]
+    },
+    {
+      id:'vhs', name:'VHS', icon:'📼',
+      tagline:'rewound one too many times',
+      apply: applyVHS,
+      params:[
+        {key:'chromaShift', label:'Color bleed', type:'range', min:0, max:12, step:1, default:3, suffix:'px'},
+        {key:'tracking', label:'Tracking wobble', type:'range', min:0, max:20, step:1, default:4, suffix:'px'},
+        {key:'noise', label:'Static', type:'range', min:0, max:60, step:1, default:18},
+        {key:'scanlines', label:'Scanline strength', type:'range', min:0, max:100, step:1, default:35, suffix:'%'},
+        {key:'vignette', label:'Vignette', type:'range', min:0, max:100, step:1, default:40, suffix:'%'},
+      ]
+    },
+    {
+      id:'dither', name:'Dither', icon:'⬛',
+      tagline:'newspaper from the year 1998',
+      apply: applyDither,
+      params:[
+        {key:'mode', label:'Pattern', type:'select', default:'floyd', options:[
+          {value:'floyd', label:'Floyd–Steinberg'},
+          {value:'ordered', label:'Ordered (Bayer)'},
+          {value:'halftone', label:'Halftone dots'},
+        ]},
+        {key:'levels', label:'Levels', type:'range', min:2, max:8, step:1, default:2},
+        {key:'dotSize', label:'Dot spacing (halftone)', type:'range', min:3, max:24, step:1, default:8, suffix:'px'},
+        {key:'color', label:'Keep color', type:'checkbox', default:false},
+      ]
+    },
+    {
+      id:'chroma', name:'Chromatic Aberration', icon:'🌈',
+      tagline:'lens abuse, digitally simulated',
+      apply: applyChromaAberration,
+      params:[
+        {key:'offset', label:'Offset', type:'range', min:0, max:25, step:1, default:6, suffix:'px'},
+        {key:'angle', label:'Angle', type:'range', min:0, max:360, step:1, default:0, suffix:'°'},
+      ]
+    },
+    {
+      id:'oilpaint', name:'Oil Paint', icon:'🖌️',
+      tagline:'renaissance, if the renaissance had lag',
+      apply: applyOilPaint,
+      params:[
+        {key:'radius', label:'Brush radius', type:'range', min:1, max:5, step:1, default:3, suffix:'px'},
+        {key:'levels', label:'Color buckets', type:'range', min:4, max:20, step:1, default:10},
+      ]
+    },
+    {
+      id:'filters', name:'Sketch Lab', icon:'🔍',
+      tagline:'grayscale, invert, emboss & friends',
+      apply: applyFilters,
+      params:[
+        {key:'mode', label:'Filter', type:'select', default:'grayscale', options:[
+          {value:'grayscale', label:'Grayscale'},
+          {value:'invert', label:'Invert'},
+          {value:'sepia', label:'Sepia'},
+          {value:'emboss', label:'Emboss'},
+          {value:'edge', label:'Edge detect'},
+        ]},
+        {key:'intensity', label:'Intensity', type:'range', min:0, max:100, step:1, default:100, suffix:'%'},
+      ]
+    },
+  ];
+
+  /* ============================ state ============================ */
+
+  const params = {};
+  EFFECTS.forEach(e=>{
+    params[e.id] = {};
+    e.params.forEach(p=>{ params[e.id][p.key] = p.default; });
+  });
+
+  let currentTab = EFFECTS[0].id;
+  let originalCanvas = null;
+  let renderTimer = null;
+  let renderToken = 0;
+
+  /* ============================ dom refs ============================ */
+
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  const workshop = document.getElementById('workshop');
+  const tabsEl = document.getElementById('tabs');
+  const controlsPanel = document.getElementById('controlsPanel');
+  const controlsTitle = document.getElementById('controlsTitle');
+  const presetsRow = document.getElementById('presetsRow');
+  const viewCanvas = document.getElementById('viewCanvas');
+  const loadingFlag = document.getElementById('loadingFlag');
+  const taglineEl = document.getElementById('tagline');
+  const gaugeNeedle = document.getElementById('gaugeNeedle');
+  const gaugeValue = document.getElementById('gaugeValue');
+  const randomizeBtn = document.getElementById('randomizeBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const newImageBtn = document.getElementById('newImageBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+
+  /* ============================ image loading ============================ */
+
+  function getEffect(id){ return EFFECTS.find(e=>e.id===id); }
+
+  async function handleFile(file){
+    if(!file || !file.type.startsWith('image/')) return;
+    const url = URL.createObjectURL(file);
+    const img = await loadImageEl(url);
+    URL.revokeObjectURL(url);
+
+    const maxDim = 1100;
+    const scale = Math.min(1, maxDim/Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width*scale));
+    const h = Math.max(1, Math.round(img.height*scale));
+
+    originalCanvas = newCanvas(w,h);
+    originalCanvas.getContext('2d').drawImage(img, 0,0, w,h);
+
+    dropZone.hidden = true;
+    workshop.hidden = false;
+    render();
+  }
+
+  dropZone.addEventListener('click', ()=>fileInput.click());
+  fileInput.addEventListener('change', e=>{ if(e.target.files[0]) handleFile(e.target.files[0]); });
+  ['dragover','dragenter'].forEach(evt=>{
+    dropZone.addEventListener(evt, e=>{ e.preventDefault(); dropZone.classList.add('drag'); });
+  });
+  ['dragleave','dragend'].forEach(evt=>{
+    dropZone.addEventListener(evt, e=>{ dropZone.classList.remove('drag'); });
+  });
+  dropZone.addEventListener('drop', e=>{
+    e.preventDefault();
+    dropZone.classList.remove('drag');
+    if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  newImageBtn.addEventListener('click', ()=>{
+    originalCanvas = null;
+    workshop.hidden = true;
+    dropZone.hidden = false;
+    fileInput.value = '';
+  });
+
+  /* ============================ tabs ============================ */
+
+  function buildTabs(){
+    tabsEl.innerHTML = '';
+    EFFECTS.forEach(e=>{
+      const btn = document.createElement('button');
+      btn.className = 'tab-btn' + (e.id===currentTab ? ' active' : '');
+      btn.innerHTML = `<span>${e.icon}</span><span>${e.name}</span>`;
+      btn.addEventListener('click', ()=>{
+        currentTab = e.id;
+        buildTabs();
+        buildControls();
+        render();
+      });
+      tabsEl.appendChild(btn);
+    });
+  }
+
+  /* ============================ controls ============================ */
+
+  function fieldValueLabel(fieldConf, value){
+    if(fieldConf.type === 'checkbox') return value ? 'on' : 'off';
+    return value + (fieldConf.suffix || '');
+  }
+
+  function buildControls(){
+    const effect = getEffect(currentTab);
+    controlsTitle.textContent = effect.name.toUpperCase() + ' CONTROLS';
+    taglineEl.textContent = effect.tagline;
+    controlsPanel.innerHTML = '';
+    presetsRow.innerHTML = '';
+
+    if(effect.presets){
+      effect.presets.forEach(preset=>{
+        const b = document.createElement('button');
+        b.className = 'preset-btn';
+        b.textContent = preset.name;
+        b.addEventListener('click', ()=>{
+          Object.assign(params[effect.id], preset.values);
+          buildControls();
+          render();
+        });
+        presetsRow.appendChild(b);
+      });
+    }
+
+    effect.params.forEach(fieldConf=>{
+      const wrap = document.createElement('div');
+      wrap.className = 'field';
+
+      if(fieldConf.type === 'range'){
+        const top = document.createElement('div');
+        top.className = 'field-top';
+        const label = document.createElement('label');
+        label.textContent = fieldConf.label;
+        const val = document.createElement('span');
+        val.className = 'val mono';
+        val.textContent = fieldValueLabel(fieldConf, params[effect.id][fieldConf.key]);
+        top.appendChild(label); top.appendChild(val);
+
+        const input = document.createElement('input');
+        input.type = 'range';
+        input.min = fieldConf.min; input.max = fieldConf.max; input.step = fieldConf.step;
+        input.value = params[effect.id][fieldConf.key];
+        input.addEventListener('input', ()=>{
+          params[effect.id][fieldConf.key] = Number(input.value);
+          val.textContent = fieldValueLabel(fieldConf, Number(input.value));
+          updateGauge();
+          scheduleRender();
+        });
+
+        wrap.appendChild(top);
+        wrap.appendChild(input);
+      } else if(fieldConf.type === 'checkbox'){
+        wrap.className = 'field checkbox-field';
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.checked = !!params[effect.id][fieldConf.key];
+        input.id = 'chk-'+fieldConf.key;
+        const label = document.createElement('label');
+        label.htmlFor = input.id;
+        label.textContent = fieldConf.label;
+        input.addEventListener('change', ()=>{
+          params[effect.id][fieldConf.key] = input.checked;
+          scheduleRender();
+        });
+        wrap.appendChild(input);
+        wrap.appendChild(label);
+      } else if(fieldConf.type === 'select'){
+        const label = document.createElement('label');
+        label.textContent = fieldConf.label;
+        label.style.display='block';
+        label.style.marginBottom='6px';
+        const select = document.createElement('select');
+        select.className = 'select-field';
+        fieldConf.options.forEach(opt=>{
+          const o = document.createElement('option');
+          o.value = opt.value; o.textContent = opt.label;
+          if(params[effect.id][fieldConf.key] === opt.value) o.selected = true;
+          select.appendChild(o);
+        });
+        select.addEventListener('change', ()=>{
+          params[effect.id][fieldConf.key] = select.value;
+          scheduleRender();
+        });
+        wrap.appendChild(label);
+        wrap.appendChild(select);
+      }
+
+      controlsPanel.appendChild(wrap);
+    });
+
+    updateGauge();
+  }
+
+  /* ============================ pain-o-meter ============================ */
+
+  function updateGauge(){
+    const effect = getEffect(currentTab);
+    const rangeFields = effect.params.filter(f=>f.type==='range');
+    let sum = 0;
+    rangeFields.forEach(f=>{
+      const v = params[effect.id][f.key];
+      const norm = (v - f.min) / (f.max - f.min || 1);
+      sum += norm;
+    });
+    const pct = rangeFields.length ? Math.round((sum/rangeFields.length)*100) : 0;
+    const angle = -90 + (pct/100)*180;
+    gaugeNeedle.setAttribute('transform', `rotate(${angle} 38 42)`);
+    gaugeValue.textContent = pct + '%';
+  }
+
+  /* ============================ render pipeline ============================ */
+
+  function scheduleRender(){
+    clearTimeout(renderTimer);
+    renderTimer = setTimeout(render, 100);
+  }
+
+  async function render(){
+    if(!originalCanvas) return;
+    const myToken = ++renderToken;
+    loadingFlag.classList.add('show');
+    downloadBtn.disabled = true;
+
+    const effect = getEffect(currentTab);
+    const src = cloneCanvas(originalCanvas);
+    let result;
+    try{
+      result = await effect.apply(src, params[effect.id]);
+    }catch(err){
+      console.error('render failed', err);
+      result = src;
+    }
+
+    if(myToken !== renderToken) return; // a newer render superseded this one
+
+    viewCanvas.width = result.width;
+    viewCanvas.height = result.height;
+    viewCanvas.getContext('2d').drawImage(result, 0, 0);
+
+    loadingFlag.classList.remove('show');
+    downloadBtn.disabled = false;
+  }
+
+  /* ============================ actions ============================ */
+
+  function randomInRange(f){
+    const steps = Math.round((f.max - f.min) / f.step);
+    const r = Math.round(Math.random()*steps);
+    return f.min + r*f.step;
+  }
+
+  randomizeBtn.addEventListener('click', ()=>{
+    const effect = getEffect(currentTab);
+    effect.params.forEach(f=>{
+      if(f.type === 'range') params[effect.id][f.key] = randomInRange(f);
+      else if(f.type === 'checkbox') params[effect.id][f.key] = Math.random() > 0.4;
+      else if(f.type === 'select') params[effect.id][f.key] = f.options[Math.floor(Math.random()*f.options.length)].value;
+    });
+    buildControls();
+    render();
+  });
+
+  resetBtn.addEventListener('click', ()=>{
+    const effect = getEffect(currentTab);
+    effect.params.forEach(f=>{ params[effect.id][f.key] = f.default; });
+    buildControls();
+    render();
+  });
+
+  downloadBtn.addEventListener('click', ()=>{
+    viewCanvas.toBlob(blob=>{
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'tortured-' + currentTab + '.jpg';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }, 'image/jpeg', 0.95);
+  });
+
+  /* ============================ init ============================ */
+
+  buildTabs();
+  buildControls();
+})();
+</script>
+</body>
+</html>
