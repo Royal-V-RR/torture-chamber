@@ -227,8 +227,30 @@
     border-radius:6px; padding:8px; font-family:'JetBrains Mono'; font-size:0.8rem;
   }
 
+  .rename-row{
+    display:flex; flex-wrap:wrap; align-items:center; justify-content:center;
+    gap:10px; margin-top: 22px;
+  }
+  .rename-label{
+    font-family:'JetBrains Mono', monospace; font-size:0.78rem; color: var(--muted); letter-spacing:0.5px;
+  }
+  .rename-input-wrap{
+    display:flex; align-items:stretch; border:1px solid var(--line); border-radius:8px;
+    overflow:hidden; background: var(--panel-2); max-width: 340px; width:100%;
+  }
+  .rename-input{
+    flex:1; min-width:0; background: transparent; border:none; outline:none;
+    color: var(--bone); font-size:0.85rem; padding: 10px 12px;
+  }
+  .rename-input:focus{ background: rgba(255,46,77,0.06); }
+  .rename-ext{
+    display:flex; align-items:center; padding: 0 12px; color: var(--muted);
+    font-size:0.8rem; border-left:1px solid var(--line); background: var(--panel);
+    white-space:nowrap;
+  }
+
   .actions{
-    display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top: 22px;
+    display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top: 14px;
   }
   .actions button{
     font-family:'JetBrains Mono'; font-size:0.8rem;
@@ -305,6 +327,14 @@
       <h3 id="controlsTitle">CONTROLS</h3>
       <div class="presets" id="presetsRow"></div>
       <div id="controlsPanel"></div>
+    </div>
+  </div>
+
+  <div class="rename-row">
+    <label for="filenameInput" class="rename-label">📝 rename file</label>
+    <div class="rename-input-wrap">
+      <input type="text" id="filenameInput" class="rename-input mono" value="tortured" maxlength="80" spellcheck="false" autocomplete="off">
+      <span class="rename-ext mono" id="filenameExt">.jpg</span>
     </div>
   </div>
 
@@ -737,29 +767,22 @@
     return canvas;
   }
 
-  function applyOilPaint(canvas, p){
+  function oilPaintCore(canvas, radius, levels){
     const w = canvas.width, h = canvas.height;
-    const maxDim = 480;
-    const scale = Math.min(1, maxDim/Math.max(w,h));
-    const sw = Math.max(1, Math.round(w*scale)), sh = Math.max(1, Math.round(h*scale));
-    const small = newCanvas(sw, sh);
-    small.getContext('2d').drawImage(canvas, 0,0, sw, sh);
-
-    const sctx = small.getContext('2d');
-    const imgData = sctx.getImageData(0,0,sw,sh);
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.getImageData(0,0,w,h);
     const d = imgData.data;
-    const radius = p.radius, levels = p.levels;
     const out = new Uint8ClampedArray(d.length);
     const cnt = new Array(levels), aR = new Array(levels), aG = new Array(levels), aB = new Array(levels);
 
-    for(let y=0;y<sh;y++){
-      for(let x=0;x<sw;x++){
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
         for(let i=0;i<levels;i++){ cnt[i]=0; aR[i]=0; aG[i]=0; aB[i]=0; }
         for(let dy=-radius; dy<=radius; dy++){
-          const yy=y+dy; if(yy<0||yy>=sh) continue;
+          const yy=y+dy; if(yy<0||yy>=h) continue;
           for(let dx=-radius; dx<=radius; dx++){
-            const xx=x+dx; if(xx<0||xx>=sw) continue;
-            const idx=(yy*sw+xx)*4;
+            const xx=x+dx; if(xx<0||xx>=w) continue;
+            const idx=(yy*w+xx)*4;
             const r=d[idx], g=d[idx+1], b=d[idx+2];
             const inten = Math.min(levels-1, Math.round(((r+g+b)/3)*(levels-1)/255));
             cnt[inten]++; aR[inten]+=r; aG[inten]+=g; aB[inten]+=b;
@@ -767,16 +790,129 @@
         }
         let mi=0, mc=0;
         for(let i=0;i<levels;i++){ if(cnt[i]>mc){ mc=cnt[i]; mi=i; } }
-        const idx=(y*sw+x)*4;
+        const idx=(y*w+x)*4;
         out[idx]=aR[mi]/mc; out[idx+1]=aG[mi]/mc; out[idx+2]=aB[mi]/mc; out[idx+3]=255;
       }
     }
-    sctx.putImageData(new ImageData(out, sw, sh), 0, 0);
+    ctx.putImageData(new ImageData(out, w, h), 0, 0);
+    return canvas;
+  }
+
+  // Desaturate slightly + deepen shadows + a dark, warm "moody" grade
+  function applyMoodGrade(canvas, p){
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const imgData = ctx.getImageData(0,0,w,h);
+    const d = imgData.data;
+    const desat = p.desaturate/100;
+    const shadowPow = 1 + (p.shadows/100)*1.4;
+    const darken = 1 - (p.mood/100)*0.28;
+    const warmR = (p.mood/100)*10, warmB = -(p.mood/100)*8;
+    for(let i=0;i<d.length;i+=4){
+      let r=d[i], g=d[i+1], b=d[i+2];
+      const lum = 0.299*r+0.587*g+0.114*b;
+      r += (lum-r)*desat; g += (lum-g)*desat; b += (lum-b)*desat;
+      r = 255*Math.pow(Math.max(0,r)/255, shadowPow);
+      g = 255*Math.pow(Math.max(0,g)/255, shadowPow);
+      b = 255*Math.pow(Math.max(0,b)/255, shadowPow);
+      r = r*darken + warmR; g = g*darken; b = b*darken + warmB;
+      d[i]=clamp(r); d[i+1]=clamp(g); d[i+2]=clamp(b);
+    }
+    ctx.putImageData(imgData,0,0);
+    return canvas;
+  }
+
+  // Visible, directional brush strokes sampled from the painted image
+  function applyBrushStrokes(canvas, amount){
+    if(amount<=0) return canvas;
+    const w = canvas.width, h = canvas.height;
+    const ctx = canvas.getContext('2d');
+    const ref = ctx.getImageData(0,0,w,h).data;
+    const count = Math.round((w*h)/900 * (amount/100));
+    ctx.save();
+    ctx.lineCap = 'round';
+    for(let i=0;i<count;i++){
+      const x = Math.random()*w, y = Math.random()*h;
+      const sx = Math.min(w-1, Math.max(0, Math.floor(x)));
+      const sy = Math.min(h-1, Math.max(0, Math.floor(y)));
+      const idx = (sy*w+sx)*4;
+      const r=ref[idx], g=ref[idx+1], b=ref[idx+2];
+      const len = 5 + Math.random()*14;
+      const angle = Math.random()*Math.PI*2;
+      const dx = Math.cos(angle)*len/2, dy = Math.sin(angle)*len/2;
+      ctx.strokeStyle = `rgba(${r},${g},${b},${(0.3+Math.random()*0.3).toFixed(2)})`;
+      ctx.lineWidth = 1 + Math.random()*2.2;
+      ctx.beginPath();
+      ctx.moveTo(x-dx, y-dy);
+      ctx.lineTo(x+dx, y+dy);
+      ctx.stroke();
+    }
+    ctx.restore();
+    return canvas;
+  }
+
+  // Aged canvas weave + grain, multiplied over the image
+  function applyCanvasTexture(canvas, amount){
+    if(amount<=0) return canvas;
+    const w = canvas.width, h = canvas.height;
+    const ctx = canvas.getContext('2d');
+    const tex = newCanvas(w,h);
+    const tctx = tex.getContext('2d');
+    const timg = tctx.createImageData(w,h);
+    const td = timg.data;
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        const idx=(y*w+x)*4;
+        const weave = Math.sin(x*1.15)*6 + Math.sin(y*1.3)*6;
+        const grain = (Math.random()-0.5)*36;
+        const v = clamp(206 + weave + grain);
+        td[idx]=td[idx+1]=td[idx+2]=v; td[idx+3]=255;
+      }
+    }
+    tctx.putImageData(timg,0,0);
+    ctx.save();
+    ctx.globalAlpha = (amount/100)*0.55;
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.drawImage(tex,0,0);
+    ctx.restore();
+    return canvas;
+  }
+
+  function applyVignette(canvas, amount){
+    if(amount<=0) return canvas;
+    const w = canvas.width, h = canvas.height;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createRadialGradient(w/2,h/2, Math.min(w,h)*0.32, w/2,h/2, Math.max(w,h)*0.72);
+    grad.addColorStop(0,'rgba(10,6,4,0)');
+    grad.addColorStop(1, `rgba(10,6,4,${amount/100})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,w,h);
+    return canvas;
+  }
+
+  function applyOilPaint(canvas, p){
+    const w = canvas.width, h = canvas.height;
+    // "resolution" = the working size the paint algorithm sees.
+    // Lower = more detail thrown away (broad, abstracted brushwork).
+    // Higher = more detail retained (finer, tighter brushwork).
+    const maxDim = p.resolution;
+    const scale = Math.min(1, maxDim/Math.max(w,h));
+    const sw = Math.max(1, Math.round(w*scale)), sh = Math.max(1, Math.round(h*scale));
+    const small = newCanvas(sw, sh);
+    small.getContext('2d').drawImage(canvas, 0,0, sw, sh);
+
+    oilPaintCore(small, p.radius, p.levels);
 
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = true;
     ctx.clearRect(0,0,w,h);
     ctx.drawImage(small, 0,0, w,h);
+
+    applyMoodGrade(canvas, p);
+    applyBrushStrokes(canvas, p.strokes);
+    applyCanvasTexture(canvas, p.canvasTexture);
+    applyVignette(canvas, p.vignette);
+
     return canvas;
   }
 
@@ -918,9 +1054,20 @@
       id:'oilpaint', name:'Oil Paint', icon:'🖌️',
       tagline:'renaissance, if the renaissance had lag',
       apply: applyOilPaint,
+      presets:[
+        {name:'Museum Portrait', values:{resolution:420, radius:3, levels:9, strokes:55, desaturate:20, shadows:45, canvasTexture:50, vignette:35}},
+        {name:'Light Wash', values:{resolution:600, radius:2, levels:12, strokes:25, desaturate:8, shadows:15, canvasTexture:20, vignette:12}},
+        {name:'Heavy Impasto', values:{resolution:260, radius:4, levels:6, strokes:85, desaturate:30, shadows:60, canvasTexture:65, vignette:50}},
+      ],
       params:[
+        {key:'resolution', label:'Detail / resolution', type:'range', min:120, max:900, step:10, default:480, suffix:'px'},
         {key:'radius', label:'Brush radius', type:'range', min:1, max:5, step:1, default:3, suffix:'px'},
         {key:'levels', label:'Color buckets', type:'range', min:4, max:20, step:1, default:10},
+        {key:'strokes', label:'Visible brush strokes', type:'range', min:0, max:100, step:1, default:40, suffix:'%'},
+        {key:'desaturate', label:'Desaturation', type:'range', min:0, max:100, step:1, default:15, suffix:'%'},
+        {key:'shadows', label:'Deepen shadows', type:'range', min:0, max:100, step:1, default:35, suffix:'%'},
+        {key:'canvasTexture', label:'Aged canvas texture', type:'range', min:0, max:100, step:1, default:30, suffix:'%'},
+        {key:'vignette', label:'Vignette', type:'range', min:0, max:100, step:1, default:25, suffix:'%'},
       ]
     },
     {
@@ -952,6 +1099,7 @@
   let originalCanvas = null;
   let renderTimer = null;
   let renderToken = 0;
+  let filenameTouched = false;
 
   /* ============================ dom refs ============================ */
 
@@ -971,6 +1119,7 @@
   const resetBtn = document.getElementById('resetBtn');
   const newImageBtn = document.getElementById('newImageBtn');
   const downloadBtn = document.getElementById('downloadBtn');
+  const filenameInput = document.getElementById('filenameInput');
 
   /* ============================ image loading ============================ */
 
@@ -992,6 +1141,8 @@
 
     dropZone.hidden = true;
     workshop.hidden = false;
+    filenameTouched = false;
+    syncFilenameDefault();
     render();
   }
 
@@ -1028,11 +1179,31 @@
         currentTab = e.id;
         buildTabs();
         buildControls();
+        syncFilenameDefault();
         render();
       });
       tabsEl.appendChild(btn);
     });
   }
+
+  /* ============================ file renamer ============================ */
+
+  function sanitizeFilename(name){
+    let s = String(name).replace(/[\/\\:*?"<>|]/g, '').trim();
+    s = s.replace(/\.+$/,'').replace(/\s+/g,' ');
+    if(!s) s = 'tortured-' + currentTab;
+    return s.slice(0,80);
+  }
+
+  function syncFilenameDefault(){
+    if(!filenameTouched) filenameInput.value = 'tortured-' + currentTab;
+  }
+
+  filenameInput.addEventListener('input', ()=>{ filenameTouched = true; });
+  filenameInput.addEventListener('blur', ()=>{
+    filenameInput.value = sanitizeFilename(filenameInput.value);
+    if(!filenameInput.value) filenameTouched = false;
+  });
 
   /* ============================ controls ============================ */
 
@@ -1211,7 +1382,8 @@
     viewCanvas.toBlob(blob=>{
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'tortured-' + currentTab + '.jpg';
+      const base = sanitizeFilename(filenameInput.value);
+      a.download = base + '.jpg';
       a.click();
       URL.revokeObjectURL(a.href);
     }, 'image/jpeg', 0.95);
