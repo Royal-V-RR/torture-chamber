@@ -287,9 +287,9 @@
 
 <div class="upload-zone" id="dropZone">
   <input type="file" id="fileInput" accept="image/*" hidden>
-  <span class="icon">🩻</span>
+  <span class="icon">🍔</span>
   <h2>DROP A VICTIM HERE</h2>
-  <p>or click to choose a file — nothing leaves your browser</p>
+  <p>or click to choose a file, nothing leaves your browser</p>
 </div>
 
 <div class="workshop" id="workshop" hidden>
@@ -347,7 +347,7 @@
 </div>
 
 <footer>
-  everything is processed locally on-device with the canvas API — no uploads, no server, no survivors.<br>
+  everything is processed locally on-device with the canvas API, no uploads, no server, no survivors.<br>
   <span class="warn">side effects may include:</span> nostalgia, headaches, and images you can no longer un-see.
 </footer>
 
@@ -805,9 +805,10 @@
     const imgData = ctx.getImageData(0,0,w,h);
     const d = imgData.data;
     const desat = p.desaturate/100;
-    const shadowPow = 1 + (p.shadows/100)*1.4;
-    const darken = 1 - (p.mood/100)*0.28;
-    const warmR = (p.mood/100)*10, warmB = -(p.mood/100)*8;
+    const moodAmt = p.shadows/100;
+    const shadowPow = 1 + moodAmt*1.4;
+    const darken = 1 - moodAmt*0.28;
+    const warmR = moodAmt*10, warmB = -moodAmt*8;
     for(let i=0;i<d.length;i+=4){
       let r=d[i], g=d[i+1], b=d[i+2];
       const lum = 0.299*r+0.587*g+0.114*b;
