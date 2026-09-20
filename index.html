@@ -34,7 +34,7 @@
   }
   .mono{ font-family:'JetBrains Mono', monospace; }
 
-  /* ---------- header ---------- */
+  /* header */
   header{ text-align:center; margin-bottom: 28px; }
   .stripe{
     display:inline-block;
@@ -89,7 +89,7 @@
   }
   .subtitle .by{ color: var(--red); }
 
-  /* ---------- upload zone ---------- */
+  /* upload zone */
   .upload-zone{
     max-width: 640px; margin: 0 auto;
     border: 2px dashed var(--line);
@@ -109,8 +109,32 @@
   .upload-zone h2{ font-family:'Bungee'; font-size:1rem; font-weight:400; margin: 6px 0; letter-spacing:0.5px; }
   .upload-zone p{ color: var(--muted); font-size:0.85rem; margin:4px 0 0; }
 
-  /* ---------- workshop layout ---------- */
+  /* workshop layout */
   .workshop{ max-width: 1180px; margin: 26px auto 0; }
+
+  .groups{
+    display:flex; flex-wrap:wrap; gap:6px; justify-content:center;
+    margin-bottom: 12px;
+  }
+  .group-btn{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 7px 13px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all .12s ease;
+    white-space:nowrap;
+  }
+  .group-btn:hover{ color: var(--bone); border-color:#4a3345; }
+  .group-btn.active{
+    color: var(--amber);
+    border-color: var(--amber);
+    background: rgba(255,176,32,0.07);
+  }
+
   .tabs{
     display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
     margin-bottom: 20px;
@@ -282,24 +306,25 @@
 <header>
   <span class="stripe"></span>
   <h1 class="glitch" data-text="ROYAL V'S IMAGE TORTURE CHAMBER">ROYAL V'S IMAGE TORTURE CHAMBER</h1>
-  <p class="subtitle">bring an image. leave with evidence. <span class="by">est. today, in a browser tab</span></p>
+  <p class="subtitle">bring an image. leave with evidence. <span class="by">runs entirely in this tab</span></p>
 </header>
 
 <div class="upload-zone" id="dropZone">
   <input type="file" id="fileInput" accept="image/*" hidden>
   <span class="icon">🍔</span>
   <h2>DROP A VICTIM HERE</h2>
-  <p>or click to choose a file, nothing leaves your browser</p>
+  <p>or tap to pick a photo. nothing leaves your browser.</p>
 </div>
 
 <div class="workshop" id="workshop" hidden>
+  <nav class="groups" id="groups"></nav>
   <nav class="tabs" id="tabs"></nav>
 
   <div class="stage">
     <div class="canvas-card">
       <div class="canvas-frame">
         <canvas id="viewCanvas"></canvas>
-        <div class="loading-flag" id="loadingFlag">⚙ processing…</div>
+        <div class="loading-flag" id="loadingFlag">⚙ working on it...</div>
       </div>
       <p class="tagline" id="tagline"></p>
       <div class="gauge-wrap">
@@ -331,7 +356,7 @@
   </div>
 
   <div class="rename-row">
-    <label for="filenameInput" class="rename-label">📝 rename file</label>
+    <label for="filenameInput" class="rename-label">📝 file name</label>
     <div class="rename-input-wrap">
       <input type="text" id="filenameInput" class="rename-input mono" value="tortured" maxlength="80" spellcheck="false" autocomplete="off">
       <span class="rename-ext mono" id="filenameExt">.jpg</span>
@@ -340,15 +365,15 @@
 
   <div class="actions">
     <button id="randomizeBtn">🎲 pull the lever</button>
-    <button id="resetBtn">↺ reset this tab</button>
+    <button id="resetBtn">↺ reset this filter</button>
     <button id="newImageBtn">🖼 new victim</button>
     <button id="downloadBtn" class="primary">⬇ download</button>
   </div>
 </div>
 
 <footer>
-  everything is processed locally on-device with the canvas API, no uploads, no server, no survivors.<br>
-  <span class="warn">side effects may include:</span> nostalgia, headaches, and images you can no longer un-see.
+  everything runs on your device. no uploads, no server, no survivors.<br>
+  <span class="warn">side effects may include</span> nostalgia, headaches, and images you can't unsee.
 </footer>
 
 <script>
@@ -454,6 +479,206 @@
       ctx.restore();
     });
     ctx.restore();
+  }
+
+  /* ---- helpers used by the newer effects ---- */
+
+  // Seeded random, so dragging a slider doesn't reshuffle the randomness every time.
+  // The seed only changes when you load a new image or pull the lever.
+  let seed = (Math.random()*4294967296)>>>0;
+  let rngState = seed;
+  function resetRng(){ rngState = seed; }
+  function rand(){
+    rngState = (rngState + 0x6D2B79F5) >>> 0;
+    let t = rngState;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+
+  // Run an effect on a smaller copy of the image, then scale the result back up.
+  // Keeps the heavy per-pixel effects smooth on a phone.
+  function processScaled(canvas, maxDim, fn){
+    const w = canvas.width, h = canvas.height;
+    const s = Math.min(1, maxDim/Math.max(w,h));
+    if(s >= 1){ fn(canvas); return canvas; }
+    const sw = Math.max(1, Math.round(w*s)), sh = Math.max(1, Math.round(h*s));
+    const small = newCanvas(sw, sh);
+    const sctx = small.getContext('2d');
+    sctx.imageSmoothingEnabled = true; sctx.imageSmoothingQuality = 'high';
+    sctx.drawImage(canvas, 0,0, sw,sh);
+    fn(small);
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.clearRect(0,0,w,h);
+    ctx.drawImage(small, 0,0, w,h);
+    return canvas;
+  }
+
+  // Cheap blur: shrink the canvas, then stretch it back. Returns a new canvas.
+  function blurScale(src, factor){
+    const W = src.width, H = src.height;
+    const tw = Math.max(1, Math.round(W/factor)), th = Math.max(1, Math.round(H/factor));
+    let cur = src;
+    while(cur.width/2 >= tw && cur.height/2 >= th){
+      const c = newCanvas(Math.max(1,Math.floor(cur.width/2)), Math.max(1,Math.floor(cur.height/2)));
+      const x = c.getContext('2d');
+      x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+      x.drawImage(cur, 0,0, c.width,c.height);
+      cur = c;
+    }
+    const mid = newCanvas(tw, th);
+    const mctx = mid.getContext('2d');
+    mctx.imageSmoothingEnabled = true; mctx.imageSmoothingQuality = 'high';
+    mctx.drawImage(cur, 0,0, tw,th);
+    const out = newCanvas(W, H);
+    const octx = out.getContext('2d');
+    octx.imageSmoothingEnabled = true; octx.imageSmoothingQuality = 'high';
+    octx.drawImage(mid, 0,0, W,H);
+    return out;
+  }
+
+  // Generic "where does this pixel come from" warp with smooth sampling.
+  // mapper(x, y, pt) writes the source coordinates into pt[0], pt[1].
+  function warpCanvas(canvas, mapper){
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const src = ctx.getImageData(0,0,w,h).data;
+    const out = new Uint8ClampedArray(src.length);
+    const pt = [0,0];
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        mapper(x, y, pt);
+        let sx = pt[0], sy = pt[1];
+        if(sx < 0) sx = 0; else if(sx > w-1) sx = w-1;
+        if(sy < 0) sy = 0; else if(sy > h-1) sy = h-1;
+        const x0 = sx|0, y0 = sy|0;
+        const x1 = x0+1 < w ? x0+1 : x0, y1 = y0+1 < h ? y0+1 : y0;
+        const fx = sx-x0, fy = sy-y0;
+        const i00 = (y0*w+x0)*4, i10 = (y0*w+x1)*4, i01 = (y1*w+x0)*4, i11 = (y1*w+x1)*4;
+        const o = (y*w+x)*4;
+        for(let c=0;c<4;c++){
+          const top = src[i00+c]*(1-fx) + src[i10+c]*fx;
+          const bot = src[i01+c]*(1-fx) + src[i11+c]*fx;
+          out[o+c] = top*(1-fy) + bot*fy;
+        }
+      }
+    }
+    ctx.putImageData(new ImageData(out, w, h), 0, 0);
+    return canvas;
+  }
+
+  // Color palettes: each stop is [position 0..1, r, g, b]
+  const PALETTES = {
+    // thermal cam
+    heat:      [[0,5,0,25],[0.18,40,0,120],[0.36,130,0,140],[0.52,220,20,50],[0.7,255,120,0],[0.86,255,220,40],[1,255,255,230]],
+    inferno:   [[0,0,0,4],[0.25,66,10,104],[0.5,187,55,84],[0.75,249,142,9],[1,252,255,164]],
+    cold:      [[0,2,4,30],[0.35,20,60,170],[0.7,60,200,240],[1,235,255,255]],
+    rainbow:   [[0,20,0,90],[0.25,0,110,255],[0.5,0,230,120],[0.75,255,230,0],[1,255,40,20]],
+    night:     [[0,0,8,2],[0.5,20,120,40],[1,170,255,150]],
+    // gradient map
+    synthwave: [[0,10,0,40],[0.35,120,0,160],[0.65,255,40,150],[1,80,240,255]],
+    toxic:     [[0,5,10,0],[0.4,20,90,10],[0.75,130,255,20],[1,240,255,160]],
+    sunset:    [[0,30,0,60],[0.35,180,30,90],[0.7,255,130,30],[1,255,240,170]],
+    bloodmoon: [[0,0,0,0],[0.5,120,0,10],[0.85,255,40,30],[1,255,200,180]],
+    ocean:     [[0,0,10,40],[0.5,0,110,170],[1,190,250,255]],
+    bubblegum: [[0,60,20,120],[0.5,255,110,190],[1,255,250,220]],
+    cyanotype: [[0,4,20,50],[1,200,235,255]],
+    chamber:   [[0,11,7,16],[0.6,255,46,77],[1,243,236,227]],
+  };
+  const lutCache = {};
+  function buildLUT(stops){
+    const lut = new Uint8ClampedArray(256*3);
+    for(let i=0;i<256;i++){
+      const t = i/255;
+      let a = stops[0], b = stops[stops.length-1];
+      for(let s=0;s<stops.length-1;s++){
+        if(t >= stops[s][0] && t <= stops[s+1][0]){ a = stops[s]; b = stops[s+1]; break; }
+      }
+      const span = (b[0]-a[0]) || 1;
+      const f = Math.min(1, Math.max(0, (t-a[0])/span));
+      lut[i*3]   = a[1] + (b[1]-a[1])*f;
+      lut[i*3+1] = a[2] + (b[2]-a[2])*f;
+      lut[i*3+2] = a[3] + (b[3]-a[3])*f;
+    }
+    return lut;
+  }
+  function getLUT(name){
+    if(!lutCache[name]) lutCache[name] = buildLUT(PALETTES[name] || PALETTES.heat);
+    return lutCache[name];
+  }
+
+  // Sobel edge strength (and optionally direction) from a luminance array
+  function sobelField(L, w, h, wantAngle){
+    const mag = new Float32Array(w*h);
+    const ang = wantAngle ? new Float32Array(w*h) : null;
+    for(let y=1;y<h-1;y++){
+      for(let x=1;x<w-1;x++){
+        const i = y*w+x;
+        const tl = L[i-w-1], t = L[i-w], tr = L[i-w+1];
+        const l = L[i-1], r = L[i+1];
+        const bl = L[i+w-1], b = L[i+w], br = L[i+w+1];
+        const gx = -tl - 2*l - bl + tr + 2*r + br;
+        const gy = -tl - 2*t - tr + bl + 2*b + br;
+        mag[i] = Math.sqrt(gx*gx + gy*gy);
+        if(ang) ang[i] = Math.atan2(gy, gx);
+      }
+    }
+    return {mag, ang};
+  }
+
+  // Grow a 0/1 mask outward by r pixels
+  function dilateMask(mask, w, h, r){
+    const tmp = new Uint8Array(w*h), out = new Uint8Array(w*h);
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        let m = 0;
+        const x0 = Math.max(0,x-r), x1 = Math.min(w-1,x+r);
+        for(let xx=x0; xx<=x1; xx++){ if(mask[y*w+xx]){ m = 1; break; } }
+        tmp[y*w+x] = m;
+      }
+    }
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        let m = 0;
+        const y0 = Math.max(0,y-r), y1 = Math.min(h-1,y+r);
+        for(let yy=y0; yy<=y1; yy++){ if(tmp[yy*w+x]){ m = 1; break; } }
+        out[y*w+x] = m;
+      }
+    }
+    return out;
+  }
+
+  // Fast separable box blur for a single channel
+  function boxBlurGray(src, w, h, r){
+    const tmp = new Float32Array(w*h), out = new Float32Array(w*h);
+    const win = 2*r+1;
+    for(let y=0;y<h;y++){
+      const row = y*w;
+      let sum = 0;
+      for(let k=-r;k<=r;k++) sum += src[row + Math.min(w-1, Math.max(0,k))];
+      for(let x=0;x<w;x++){
+        tmp[row+x] = sum/win;
+        const add = Math.min(w-1, x+r+1), rem = Math.max(0, x-r);
+        sum += src[row+add] - src[row+rem];
+      }
+    }
+    for(let x=0;x<w;x++){
+      let sum = 0;
+      for(let k=-r;k<=r;k++) sum += tmp[Math.min(h-1, Math.max(0,k))*w + x];
+      for(let y=0;y<h;y++){
+        out[y*w+x] = sum/win;
+        const add = Math.min(h-1, y+r+1), rem = Math.max(0, y-r);
+        sum += tmp[add*w+x] - tmp[rem*w+x];
+      }
+    }
+    return out;
+  }
+
+  // Fully saturated color from a hue in 0..1
+  function hueRGB(hue){
+    const f = (n)=>{ const k = (n + hue*6) % 6; return 255*(1 - Math.max(0, Math.min(k, 4-k, 1))); };
+    return [f(5), f(3), f(1)];
   }
 
   /* ============================ effects ============================ */
@@ -798,7 +1023,7 @@
     return canvas;
   }
 
-  // Desaturate slightly + deepen shadows + a dark, warm "moody" grade
+  // Slightly desaturate, deepen the shadows and add a dark, warm grade
   function applyMoodGrade(canvas, p){
     const ctx = canvas.getContext('2d');
     const w = canvas.width, h = canvas.height;
@@ -823,7 +1048,7 @@
     return canvas;
   }
 
-  // Visible, directional brush strokes sampled from the painted image
+  // Visible brush strokes sampled from the painted image
   function applyBrushStrokes(canvas, amount){
     if(amount<=0) return canvas;
     const w = canvas.width, h = canvas.height;
@@ -852,7 +1077,7 @@
     return canvas;
   }
 
-  // Aged canvas weave + grain, multiplied over the image
+  // Aged canvas weave and grain, multiplied over the image
   function applyCanvasTexture(canvas, amount){
     if(amount<=0) return canvas;
     const w = canvas.width, h = canvas.height;
@@ -893,9 +1118,9 @@
 
   function applyOilPaint(canvas, p){
     const w = canvas.width, h = canvas.height;
-    // "resolution" = the working size the paint algorithm sees.
-    // Lower = more detail thrown away (broad, abstracted brushwork).
-    // Higher = more detail retained (finer, tighter brushwork).
+    // "resolution" is the working size the paint algorithm sees.
+    // Lower means more detail is thrown away (broad, abstract brushwork).
+    // Higher keeps more detail (finer, tighter brushwork).
     const maxDim = p.resolution;
     const scale = Math.min(1, maxDim/Math.max(w,h));
     const sw = Math.max(1, Math.round(w*scale)), sh = Math.max(1, Math.round(h*scale));
@@ -954,21 +1179,736 @@
     return canvas;
   }
 
+  /* ============================ new effects: warp ============================ */
+
+  function applySwirl(canvas, p){
+    const w = canvas.width, h = canvas.height;
+    const cx = w*p.centerX/100, cy = h*p.centerY/100;
+    const R = Math.max(1, p.radius/100 * Math.max(w,h)/2);
+    const strength = p.strength;
+    return warpCanvas(canvas, (x,y,pt)=>{
+      const dx = x-cx, dy = y-cy;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if(d >= R){ pt[0] = x; pt[1] = y; return; }
+      const t = 1 - d/R;
+      const a = strength*t*t;
+      const c = Math.cos(a), s = Math.sin(a);
+      pt[0] = cx + dx*c - dy*s;
+      pt[1] = cy + dx*s + dy*c;
+    });
+  }
+
+  function applyBulge(canvas, p){
+    const w = canvas.width, h = canvas.height;
+    const cx = w*p.centerX/100, cy = h*p.centerY/100;
+    const R = Math.max(1, p.radius/100 * Math.max(w,h)/2);
+    const expo = 1 + (p.strength/100)*0.85;
+    return warpCanvas(canvas, (x,y,pt)=>{
+      const dx = x-cx, dy = y-cy;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if(d >= R || d === 0){ pt[0] = x; pt[1] = y; return; }
+      const r = d/R;
+      const f = (Math.pow(r, expo)*R)/d;
+      pt[0] = cx + dx*f;
+      pt[1] = cy + dy*f;
+    });
+  }
+
+  function applyWave(canvas, p){
+    const k = 2*Math.PI/Math.max(4, p.wavelength);
+    const ph = p.phase*Math.PI/180;
+    const amp = p.amplitude;
+    const wob = p.wobble/100;
+    const dir = p.direction;
+    return warpCanvas(canvas, (x,y,pt)=>{
+      let sx = x, sy = y;
+      if(dir === 'horizontal' || dir === 'both'){
+        sx = x + Math.sin(y*k + ph)*amp + Math.sin(y*k*2.7 + ph*1.3)*amp*wob*0.5;
+      }
+      if(dir === 'vertical' || dir === 'both'){
+        sy = y + Math.sin(x*k + ph)*amp + Math.sin(x*k*2.7 + ph*1.3)*amp*wob*0.5;
+      }
+      pt[0] = sx; pt[1] = sy;
+    });
+  }
+
+  function applyKaleido(canvas, p){
+    const w = canvas.width, h = canvas.height;
+    const cx = w/2, cy = h/2;
+    const srcX = w*p.pickX/100, srcY = h*p.pickY/100;
+    const seg = Math.max(2, Math.round(p.segments));
+    const sector = Math.PI*2/seg;
+    const rot = p.rotation*Math.PI/180;
+    const zi = 100/p.zoom;
+    return warpCanvas(canvas, (x,y,pt)=>{
+      const dx = x-cx, dy = y-cy;
+      const r = Math.sqrt(dx*dx + dy*dy);
+      let a = Math.atan2(dy, dx) - rot;
+      a = ((a % sector) + sector) % sector;
+      if(a > sector/2) a = sector - a;
+      a += rot;
+      pt[0] = srcX + Math.cos(a)*r*zi;
+      pt[1] = srcY + Math.sin(a)*r*zi;
+    });
+  }
+
+  function applyZoomBlur(canvas, p){
+    return processScaled(canvas, 900, (c)=>{
+      const w = c.width, h = c.height;
+      const ctx = c.getContext('2d');
+      const src = ctx.getImageData(0,0,w,h).data;
+      const out = new Uint8ClampedArray(src.length);
+      const cx = w*p.centerX/100, cy = h*p.centerY/100;
+      const n = Math.max(2, Math.round(p.samples));
+      const amt = p.strength/100*0.5;
+      const scales = new Float32Array(n);
+      for(let i=0;i<n;i++) scales[i] = 1 - amt*(i/(n-1));
+      for(let y=0;y<h;y++){
+        for(let x=0;x<w;x++){
+          const dx = x-cx, dy = y-cy;
+          let r=0, g=0, b=0, a=0;
+          for(let i=0;i<n;i++){
+            let sx = Math.round(cx + dx*scales[i]);
+            let sy = Math.round(cy + dy*scales[i]);
+            if(sx < 0) sx = 0; else if(sx > w-1) sx = w-1;
+            if(sy < 0) sy = 0; else if(sy > h-1) sy = h-1;
+            const idx = (sy*w+sx)*4;
+            r += src[idx]; g += src[idx+1]; b += src[idx+2]; a += src[idx+3];
+          }
+          const o = (y*w+x)*4;
+          out[o] = r/n; out[o+1] = g/n; out[o+2] = b/n; out[o+3] = a/n;
+        }
+      }
+      ctx.putImageData(new ImageData(out, w, h), 0, 0);
+    });
+  }
+
+  /* ============================ new effects: glitch and digital ============================ */
+
+  function sortKey(v, mode){
+    const r = v & 255, g = (v>>8) & 255, b = (v>>16) & 255;
+    if(mode === 'brightness') return (r*77 + g*151 + b*28) >> 8;
+    const mx = Math.max(r,g,b), mn = Math.min(r,g,b), d = mx - mn;
+    if(mode === 'saturation') return mx === 0 ? 0 : Math.round(d/mx*255);
+    if(d === 0) return 0;
+    let hh;
+    if(mx === r) hh = ((g-b)/d + 6) % 6;
+    else if(mx === g) hh = (b-r)/d + 2;
+    else hh = (r-g)/d + 4;
+    return Math.round(hh/6*255);
+  }
+
+  function applyPixelSort(canvas, p){
+    return processScaled(canvas, 900, (c)=>{
+      const w = c.width, h = c.height;
+      const ctx = c.getContext('2d');
+      const img = ctx.getImageData(0,0,w,h);
+      const px = new Uint32Array(img.data.buffer);
+      const vertical = p.direction === 'vertical';
+      const lines = vertical ? w : h;
+      const len = vertical ? h : w;
+      const stride = vertical ? w : 1;
+      const buf = new Uint32Array(len);
+      const lum = new Uint8Array(len);
+      const tmp = new Float64Array(len);
+      const lo = Math.min(p.low, p.high), hi = Math.max(p.low, p.high);
+      const maxLen = Math.max(2, p.maxLength);
+      for(let l=0;l<lines;l++){
+        const base = vertical ? l : l*w;
+        for(let i=0;i<len;i++){
+          const v = px[base + i*stride];
+          buf[i] = v;
+          lum[i] = ((v&255)*77 + ((v>>8)&255)*151 + ((v>>16)&255)*28) >> 8;
+        }
+        let i = 0;
+        while(i < len){
+          while(i < len && (lum[i] < lo || lum[i] > hi)) i++;
+          const start = i;
+          while(i < len && lum[i] >= lo && lum[i] <= hi && i-start < maxLen) i++;
+          const n = i - start;
+          if(n < 2) continue;
+          const seg = tmp.subarray(0, n);
+          for(let j=0;j<n;j++){
+            const v = buf[start+j];
+            seg[j] = sortKey(v, p.sortBy)*16777216 + (v & 0xFFFFFF);
+          }
+          seg.sort();
+          for(let j=0;j<n;j++){
+            const val = seg[p.reverse ? n-1-j : j];
+            buf[start+j] = (0xFF000000 | (val % 16777216)) >>> 0;
+          }
+        }
+        for(let k=0;k<len;k++) px[base + k*stride] = buf[k];
+      }
+      ctx.putImageData(img, 0, 0);
+    });
+  }
+
+  function applyDatamosh(canvas, p){
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const snap = cloneCanvas(canvas);
+    ctx.imageSmoothingEnabled = false;
+    const bs = Math.max(4, p.blockSize);
+    for(let by=0; by<h; by+=bs){
+      for(let bx=0; bx<w; bx+=bs){
+        if(rand()*100 >= p.amount) continue;
+        const bw = Math.min(bs, w-bx), bh = Math.min(bs, h-by);
+        const kind = rand();
+        if(kind < 0.6 && p.smear > 0){
+          // drag the edge of the block along in one direction
+          const len = Math.max(2, Math.round(p.smear*(0.25 + rand()*0.75)));
+          const dir = Math.floor(rand()*4);
+          if(dir === 0)      ctx.drawImage(snap, bx,by,1,bh, bx,by,len,bh);
+          else if(dir === 1) ctx.drawImage(snap, bx+bw-1,by,1,bh, bx+bw-len,by,len,bh);
+          else if(dir === 2) ctx.drawImage(snap, bx,by,bw,1, bx,by,bw,len);
+          else               ctx.drawImage(snap, bx,by+bh-1,bw,1, bx,by+bh-len,bw,len);
+        } else if(p.drift > 0){
+          // swap in a block from a nearby spot, like a bad motion vector
+          const ox = Math.round((rand()-0.5)*2*p.drift);
+          const oy = Math.round((rand()-0.5)*2*p.drift);
+          ctx.drawImage(snap, bx+ox, by+oy, bw, bh, bx, by, bw, bh);
+        }
+      }
+    }
+    return canvas;
+  }
+
+  const ASCII_RAMPS = {
+    classic: ' .:-=+*#%@',
+    blocks:  ' ░▒▓█',
+    binary:  ' 01',
+    minimal: ' .oO@',
+  };
+  const ASCII_LOOKS = {
+    green: {bg:'#020a04', fg:'#45ff8a', onLight:false},
+    bone:  {bg:'#0b0710', fg:'#f3ece3', onLight:false},
+    paper: {bg:'#f3ece3', fg:'#1a1216', onLight:true},
+    color: {bg:'#0b0710', fg:null,      onLight:false},
+  };
+
+  function applyAscii(canvas, p){
+    const w = canvas.width, h = canvas.height;
+    const cellH = p.cellSize;
+    const cellW = Math.max(2, Math.round(p.cellSize*0.6));
+    const cols = Math.max(1, Math.ceil(w/cellW)), rows = Math.max(1, Math.ceil(h/cellH));
+    const tiny = newCanvas(cols, rows);
+    const tctx = tiny.getContext('2d', {willReadFrequently:true});
+    tctx.imageSmoothingEnabled = true; tctx.imageSmoothingQuality = 'high';
+    tctx.drawImage(canvas, 0,0, cols,rows);
+    const d = tctx.getImageData(0,0,cols,rows).data;
+
+    const ramp = ASCII_RAMPS[p.charset] || ASCII_RAMPS.classic;
+    const n = ramp.length;
+    const look = ASCII_LOOKS[p.look] || ASCII_LOOKS.green;
+    const cf = p.contrast/100;
+
+    const ctx = canvas.getContext('2d');
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = look.bg;
+    ctx.fillRect(0,0,w,h);
+    ctx.font = Math.round(cellH*0.98) + 'px "JetBrains Mono", monospace';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    if(look.fg) ctx.fillStyle = look.fg;
+
+    for(let y=0;y<rows;y++){
+      for(let x=0;x<cols;x++){
+        const i = (y*cols+x)*4;
+        const r = d[i], g = d[i+1], b = d[i+2];
+        let l = (0.299*r + 0.587*g + 0.114*b)/255;
+        l = Math.min(1, Math.max(0, (l-0.5)*cf + 0.5));
+        let dens = look.onLight ? 1-l : l;
+        if(p.invert) dens = 1-dens;
+        const ch = ramp[Math.min(n-1, Math.floor(dens*n))];
+        if(ch === ' ') continue;
+        if(!look.fg){
+          ctx.fillStyle = 'rgb(' + (clamp(r*1.25)|0) + ',' + (clamp(g*1.25)|0) + ',' + (clamp(b*1.25)|0) + ')';
+        }
+        ctx.fillText(ch, x*cellW + cellW/2, y*cellH + cellH/2);
+      }
+    }
+    ctx.restore();
+    return canvas;
+  }
+
+  const EMOJI_SET = ['🟥','🟧','🟨','🟩','🟦','🟪','🟫','⬛','⬜','🍎','🍊','🍋','🍏','🍇','🫐','🍓','🍒','🥝','🍆','🥑','🌽','🥕','🍄','🍑','🌸','🌻','🌿','🍀','🌵','🐸','🐥','🐝','🐷','🐙','🐬','🐳','🦋','🐞','🐘','🌙','⭐','🔥','💧','💎','🎈','🧀','🍞','🍩','🍪','🍫','🌈','🪐','🌍','🧊','🪨','😀','😳','🤢','😈'];
+  const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Twemoji Mozilla",sans-serif';
+  let emojiPalette = null;
+
+  // Measures the average color of each emoji on this device, once
+  function getEmojiPalette(){
+    if(emojiPalette) return emojiPalette;
+    const S = 32;
+    const c = newCanvas(S,S);
+    const ctx = c.getContext('2d', {willReadFrequently:true});
+    const list = [];
+    EMOJI_SET.forEach(ch=>{
+      ctx.clearRect(0,0,S,S);
+      ctx.font = Math.round(S*0.8) + 'px ' + EMOJI_FONT;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(ch, S/2, S/2+1);
+      const d = ctx.getImageData(0,0,S,S).data;
+      let r=0, g=0, b=0, ws=0;
+      for(let i=0;i<d.length;i+=4){
+        const a = d[i+3];
+        if(a > 30){ r += d[i]*a; g += d[i+1]*a; b += d[i+2]*a; ws += a; }
+      }
+      if(ws > 255*40) list.push({ch, r:r/ws, g:g/ws, b:b/ws});
+    });
+    emojiPalette = list;
+    return list;
+  }
+
+  function applyEmojiMosaic(canvas, p){
+    const w = canvas.width, h = canvas.height;
+    const cell = Math.max(4, Math.round(p.cellSize));
+    const cols = Math.max(1, Math.ceil(w/cell)), rows = Math.max(1, Math.ceil(h/cell));
+    const tiny = newCanvas(cols, rows);
+    const tctx = tiny.getContext('2d', {willReadFrequently:true});
+    tctx.imageSmoothingEnabled = true; tctx.imageSmoothingQuality = 'high';
+    tctx.drawImage(canvas, 0,0, cols,rows);
+    const d = tctx.getImageData(0,0,cols,rows).data;
+
+    const pal = getEmojiPalette();
+    if(!pal.length) return canvas;
+    const sprites = new Array(pal.length);
+    const tint = p.backdrop/100;
+
+    const ctx = canvas.getContext('2d');
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = '#0b0710';
+    ctx.fillRect(0,0,w,h);
+
+    for(let y=0;y<rows;y++){
+      for(let x=0;x<cols;x++){
+        const i = (y*cols+x)*4;
+        const r = d[i], g = d[i+1], b = d[i+2];
+        if(tint > 0){
+          ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',' + tint + ')';
+          ctx.fillRect(x*cell, y*cell, cell, cell);
+        }
+        let best = 0, bestD = Infinity;
+        for(let k=0;k<pal.length;k++){
+          const e = pal[k];
+          const dr = r-e.r, dg = g-e.g, db = b-e.b;
+          const dist = 2*dr*dr + 4*dg*dg + 3*db*db;
+          if(dist < bestD){ bestD = dist; best = k; }
+        }
+        if(!sprites[best]){
+          const sp = newCanvas(cell, cell);
+          const sctx = sp.getContext('2d');
+          sctx.font = Math.round(cell*0.82) + 'px ' + EMOJI_FONT;
+          sctx.textAlign = 'center'; sctx.textBaseline = 'middle';
+          sctx.fillText(pal[best].ch, cell/2, cell/2 + cell*0.04);
+          sprites[best] = sp;
+        }
+        ctx.drawImage(sprites[best], x*cell, y*cell);
+      }
+    }
+    ctx.restore();
+    return canvas;
+  }
+
+  /* ============================ new effects: color and look ============================ */
+
+  function applyThermal(canvas, p){
+    const w = canvas.width, h = canvas.height;
+    const ctx = canvas.getContext('2d');
+    if(p.softness > 0){
+      const soft = blurScale(canvas, 1 + p.softness*0.6);
+      ctx.clearRect(0,0,w,h);
+      ctx.drawImage(soft, 0,0);
+    }
+    const img = ctx.getImageData(0,0,w,h);
+    const d = img.data;
+    const lut = getLUT(p.palette);
+    const cf = p.contrast/100;
+    const noise = p.noise*2;
+    for(let i=0;i<d.length;i+=4){
+      let l = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+      l = (l-128)*cf + 128 + p.shift;
+      if(noise > 0) l += (rand()-0.5)*noise;
+      const k = (l < 0 ? 0 : l > 255 ? 255 : l|0)*3;
+      d[i] = lut[k]; d[i+1] = lut[k+1]; d[i+2] = lut[k+2]; d[i+3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+
+    if(p.hud){
+      const m = Math.round(Math.min(w,h)*0.05);
+      const L = Math.round(Math.min(w,h)*0.08);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.88)';
+      ctx.lineWidth = Math.max(2, Math.round(Math.min(w,h)/220));
+      // corner brackets
+      [[m,m,1,1],[w-m,m,-1,1],[m,h-m,1,-1],[w-m,h-m,-1,-1]].forEach(([x,y,sx,sy])=>{
+        ctx.beginPath();
+        ctx.moveTo(x+sx*L, y); ctx.lineTo(x, y); ctx.lineTo(x, y+sy*L);
+        ctx.stroke();
+      });
+      // crosshair
+      const cx = w/2, cy = h/2, cr = Math.round(Math.min(w,h)*0.045);
+      ctx.beginPath();
+      ctx.arc(cx, cy, cr, 0, Math.PI*2);
+      ctx.moveTo(cx-cr*1.9, cy); ctx.lineTo(cx-cr*0.5, cy);
+      ctx.moveTo(cx+cr*0.5, cy); ctx.lineTo(cx+cr*1.9, cy);
+      ctx.moveTo(cx, cy-cr*1.9); ctx.lineTo(cx, cy-cr*0.5);
+      ctx.moveTo(cx, cy+cr*0.5); ctx.lineTo(cx, cy+cr*1.9);
+      ctx.stroke();
+      // heat scale bar
+      const bw = Math.max(8, Math.round(Math.min(w,h)*0.025));
+      const bh = Math.round(h*0.4);
+      const bx = w - m - bw, by = Math.round((h-bh)/2);
+      for(let j=0;j<bh;j++){
+        const idx = Math.round((1 - j/(bh-1))*255)*3;
+        ctx.fillStyle = 'rgb(' + lut[idx] + ',' + lut[idx+1] + ',' + lut[idx+2] + ')';
+        ctx.fillRect(bx, by+j, bw, 1);
+      }
+      ctx.lineWidth = Math.max(1, Math.round(Math.min(w,h)/400));
+      ctx.strokeRect(bx, by, bw, bh);
+      ctx.restore();
+    }
+    return canvas;
+  }
+
+  function applyGradientMap(canvas, p){
+    const w = canvas.width, h = canvas.height;
+    const ctx = canvas.getContext('2d');
+    const img = ctx.getImageData(0,0,w,h);
+    const d = img.data;
+    const lut = getLUT(p.palette);
+    const cf = p.contrast/100;
+    const mix = p.mix/100;
+    for(let i=0;i<d.length;i+=4){
+      let l = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+      l = (l-128)*cf + 128 + p.brightness*1.28;
+      if(l < 0) l = 0; else if(l > 255) l = 255;
+      if(p.reverse) l = 255 - l;
+      const k = (l|0)*3;
+      d[i]   = lut[k]  *mix + d[i]  *(1-mix);
+      d[i+1] = lut[k+1]*mix + d[i+1]*(1-mix);
+      d[i+2] = lut[k+2]*mix + d[i+2]*(1-mix);
+    }
+    ctx.putImageData(img, 0, 0);
+    return canvas;
+  }
+
+  function applyNeonEdges(canvas, p){
+    const w = canvas.width, h = canvas.height;
+    const ctx = canvas.getContext('2d');
+    const orig = cloneCanvas(canvas);
+    const d = ctx.getImageData(0,0,w,h).data;
+    const L = new Float32Array(w*h);
+    for(let i=0,j=0;i<d.length;i+=4,j++) L[j] = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+
+    const rainbow = p.color === 'rainbow';
+    const {mag, ang} = sobelField(L, w, h, rainbow);
+    const fixedColors = {cyan:[0,240,255], pink:[255,40,170], green:[70,255,120]};
+    const fixed = fixedColors[p.color] || null;
+    const sens = p.sensitivity/100*0.8, cut = p.cutoff*2.5;
+
+    const edgeImg = new ImageData(w, h);
+    const e = edgeImg.data;
+    for(let j=0;j<w*h;j++){
+      let v = mag[j]*sens - cut;
+      if(v <= 0) continue;
+      if(v > 255) v = 255;
+      const o = j*4;
+      let r, g, b;
+      if(fixed){ r = fixed[0]; g = fixed[1]; b = fixed[2]; }
+      else if(rainbow){
+        const c = hueRGB((ang[j]/Math.PI + 1)/2);
+        r = c[0]; g = c[1]; b = c[2];
+      } else {
+        const sr = d[o], sg = d[o+1], sb = d[o+2];
+        const k = 255/Math.max(sr, sg, sb, 40);
+        r = Math.min(255, sr*k); g = Math.min(255, sg*k); b = Math.min(255, sb*k);
+      }
+      e[o] = r; e[o+1] = g; e[o+2] = b; e[o+3] = v;
+    }
+    const edgeCanvas = newCanvas(w,h);
+    edgeCanvas.getContext('2d').putImageData(edgeImg, 0, 0);
+
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#050308';
+    ctx.fillRect(0,0,w,h);
+    if(p.ghost > 0){
+      ctx.globalAlpha = p.ghost/100*0.5;
+      ctx.drawImage(orig, 0, 0);
+    }
+    ctx.globalCompositeOperation = 'lighter';
+    if(p.glow > 0){
+      const g1 = blurScale(edgeCanvas, 5), g2 = blurScale(edgeCanvas, 16);
+      ctx.globalAlpha = Math.min(1, p.glow/100);
+      for(let k=0;k<3;k++) ctx.drawImage(g2, 0, 0);
+      for(let k=0;k<2;k++) ctx.drawImage(g1, 0, 0);
+    }
+    ctx.globalAlpha = 1;
+    const t = Math.max(1, Math.round(p.thickness));
+    for(let ox=0; ox<t; ox++){
+      for(let oy=0; oy<t; oy++) ctx.drawImage(edgeCanvas, ox, oy);
+    }
+    ctx.restore();
+    return canvas;
+  }
+
+  function applyOldPhoto(canvas, p){
+    const w = canvas.width, h = canvas.height;
+    const ctx = canvas.getContext('2d');
+    const img = ctx.getImageData(0,0,w,h);
+    const d = img.data;
+    const fade = p.fade/100, sep = p.sepia/100, grain = p.grain;
+    const cf = 1 - fade*0.38;
+    for(let i=0;i<d.length;i+=4){
+      let r = d[i], g = d[i+1], b = d[i+2];
+      const sr = r*0.393 + g*0.769 + b*0.189;
+      const sg = r*0.349 + g*0.686 + b*0.168;
+      const sb = r*0.272 + g*0.534 + b*0.131;
+      r += (sr-r)*sep; g += (sg-g)*sep; b += (sb-b)*sep;
+      r = (r-128)*cf + 128 + fade*26;
+      g = (g-128)*cf + 128 + fade*20;
+      b = (b-128)*cf + 128 + fade*8;
+      if(grain > 0){
+        const n = (rand()-0.5)*grain*1.6;
+        r += n; g += n; b += n;
+      }
+      d[i] = clamp(r); d[i+1] = clamp(g); d[i+2] = clamp(b);
+    }
+    ctx.putImageData(img, 0, 0);
+
+    const sc = Math.max(0.6, Math.min(w,h)/700);
+
+    // light leaks bleeding in from the edges
+    if(p.lightLeak > 0){
+      const a = p.lightLeak/100;
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      for(let k=0;k<2;k++){
+        const x = rand() < 0.5 ? -w*0.05 : w*1.05;
+        const y = h*(0.1 + rand()*0.8);
+        const r = Math.max(w,h)*(0.35 + rand()*0.25);
+        const gr = ctx.createRadialGradient(x,y,0,x,y,r);
+        gr.addColorStop(0, 'rgba(255,' + (120 + Math.floor(rand()*60)) + ',40,' + (0.85*a).toFixed(3) + ')');
+        gr.addColorStop(0.45, 'rgba(255,60,30,' + (0.35*a).toFixed(3) + ')');
+        gr.addColorStop(1, 'rgba(255,60,30,0)');
+        ctx.fillStyle = gr;
+        ctx.fillRect(0,0,w,h);
+      }
+      ctx.restore();
+    }
+
+    applyVignette(canvas, p.vignette);
+
+    // dust, scratches and stray hairs
+    if(p.dust > 0){
+      const dn = p.dust/100;
+      ctx.save();
+      const specks = Math.round((w*h)/9000*dn*3);
+      for(let i=0;i<specks;i++){
+        const x = rand()*w, y = rand()*h;
+        const r = (0.4 + rand()*rand()*2.6)*sc;
+        ctx.fillStyle = rand() < 0.65
+          ? 'rgba(255,250,235,' + (0.25 + rand()*0.5).toFixed(2) + ')'
+          : 'rgba(20,12,8,' + (0.2 + rand()*0.4).toFixed(2) + ')';
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+      }
+      const scratches = Math.round(dn*8);
+      ctx.lineCap = 'round';
+      for(let i=0;i<scratches;i++){
+        let x = rand()*w, y = rand()*h*0.6;
+        const len = h*(0.15 + rand()*0.6);
+        ctx.strokeStyle = 'rgba(255,250,240,' + (0.12 + rand()*0.25).toFixed(2) + ')';
+        ctx.lineWidth = (0.6 + rand()*0.8)*sc;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        const steps = 12;
+        for(let s=1;s<=steps;s++){
+          x += (rand()-0.5)*1.6*sc;
+          ctx.lineTo(x, y + len*s/steps);
+        }
+        ctx.stroke();
+      }
+      const hairs = Math.round(dn*4);
+      for(let i=0;i<hairs;i++){
+        const x = rand()*w, y = rand()*h;
+        const len = (15 + rand()*35)*sc;
+        const ang = rand()*Math.PI*2;
+        ctx.strokeStyle = 'rgba(20,12,8,0.4)';
+        ctx.lineWidth = 0.9*sc;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.quadraticCurveTo(x + Math.cos(ang+1.2)*len*0.8, y + Math.sin(ang+1.2)*len*0.8, x + Math.cos(ang)*len, y + Math.sin(ang)*len);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    if(p.border){
+      const bt = Math.round(Math.min(w,h)*0.035);
+      ctx.save();
+      ctx.fillStyle = '#efe6d2';
+      ctx.fillRect(0, 0, w, bt);
+      ctx.fillRect(0, h-bt, w, bt);
+      ctx.fillRect(0, 0, bt, h);
+      ctx.fillRect(w-bt, 0, bt, h);
+      ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+      ctx.lineWidth = Math.max(1, Math.round(sc));
+      ctx.strokeRect(bt, bt, w-2*bt, h-2*bt);
+      ctx.restore();
+    }
+    return canvas;
+  }
+
+  /* ============================ new effects: art styles ============================ */
+
+  function applyComic(canvas, p){
+    const w = canvas.width, h = canvas.height;
+    const ctx = canvas.getContext('2d');
+    // a slightly softened copy gives cleaner flat colors and cleaner lines
+    const soft = blurScale(canvas, 2);
+    const sd = soft.getContext('2d').getImageData(0,0,w,h).data;
+    const out = new Uint8ClampedArray(sd.length);
+    const L = new Float32Array(w*h);
+    const step = 255/(p.levels-1);
+    for(let i=0,j=0;i<sd.length;i+=4,j++){
+      let r = sd[i], g = sd[i+1], b = sd[i+2];
+      const lum = 0.299*r + 0.587*g + 0.114*b;
+      L[j] = lum;
+      r = lum + (r-lum)*1.35; g = lum + (g-lum)*1.35; b = lum + (b-lum)*1.35;
+      r = clamp((r-128)*1.18 + 128); g = clamp((g-128)*1.18 + 128); b = clamp((b-128)*1.18 + 128);
+      out[i]   = Math.round(r/step)*step;
+      out[i+1] = Math.round(g/step)*step;
+      out[i+2] = Math.round(b/step)*step;
+      out[i+3] = 255;
+    }
+    ctx.putImageData(new ImageData(out, w, h), 0, 0);
+
+    // halftone dots in the shadows
+    if(p.dots > 0){
+      const sp = p.dotSize;
+      const ca = Math.SQRT1_2, sa = Math.SQRT1_2;
+      const diag = Math.ceil(Math.sqrt(w*w + h*h));
+      ctx.save();
+      ctx.fillStyle = 'rgba(18,8,40,0.55)';
+      ctx.beginPath();
+      for(let v=-diag/2; v<diag/2; v+=sp){
+        for(let u=-diag/2; u<diag/2; u+=sp){
+          const x = w/2 + u*ca - v*sa, y = h/2 + u*sa + v*ca;
+          if(x < 0 || y < 0 || x >= w || y >= h) continue;
+          const dark = 1 - L[(y|0)*w + (x|0)]/255;
+          if(dark < 0.25) continue;
+          const rad = (dark-0.15)*sp*0.75*(p.dots/100)*1.3;
+          if(rad < 0.5) continue;
+          ctx.moveTo(x+rad, y);
+          ctx.arc(x, y, rad, 0, Math.PI*2);
+        }
+      }
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // ink lines
+    const {mag} = sobelField(L, w, h, false);
+    const thr = 260 - p.lineSens*2.2;
+    let mask = new Uint8Array(w*h);
+    for(let j=0;j<w*h;j++) mask[j] = mag[j] > thr ? 1 : 0;
+    const rad = Math.round(p.lineWidth) - 1;
+    if(rad > 0) mask = dilateMask(mask, w, h, rad);
+
+    const img = ctx.getImageData(0,0,w,h);
+    const dd = img.data;
+    for(let j=0;j<w*h;j++){
+      if(mask[j]){
+        const o = j*4;
+        dd[o] = 13; dd[o+1] = 8; dd[o+2] = 18;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    return canvas;
+  }
+
+  function applyPencil(canvas, p){
+    const w = canvas.width, h = canvas.height;
+    const ctx = canvas.getContext('2d');
+    const img = ctx.getImageData(0,0,w,h);
+    const d = img.data;
+    const G = new Float32Array(w*h);
+    for(let i=0,j=0;i<d.length;i+=4,j++) G[j] = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+
+    // blur the gray image, then color dodge against it. That leaves only the edges and shading.
+    const r = Math.max(1, Math.round(p.radius/2));
+    let B = boxBlurGray(G, w, h, r);
+    B = boxBlurGray(B, w, h, r);
+
+    const gamma = 1 + p.darkness/100*1.3;
+    const hatch = p.hatching/100;
+    const grain = p.grain/100;
+    const wash = p.color/100;
+
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        const j = y*w + x, i = j*4;
+        let v = G[j]*255/Math.max(8, B[j]);
+        if(v > 255) v = 255;
+        v = 255*Math.pow(v/255, gamma);
+
+        if(hatch > 0 && v < 190){
+          const dk = (190-v)/190;
+          const wob = Math.sin(y*0.07 + x*0.02)*2;
+          if((((Math.floor(x + y + wob)) % 5) + 5) % 5 === 0) v -= hatch*dk*95;
+          if(v < 110 && (((Math.floor(x - y + wob)) % 6) + 6) % 6 === 0) v -= hatch*dk*70;
+        }
+        if(grain > 0) v *= 1 - grain*0.16*rand();
+
+        let rr = v, gg = v, bb = v;
+        if(wash > 0){
+          const cr = Math.min(255, d[i]*1.25 + 20)/255;
+          const cg = Math.min(255, d[i+1]*1.25 + 20)/255;
+          const cb = Math.min(255, d[i+2]*1.25 + 20)/255;
+          rr = v*((1-wash) + wash*cr);
+          gg = v*((1-wash) + wash*cg);
+          bb = v*((1-wash) + wash*cb);
+        }
+        if(p.paper){ rr *= 0.969; gg *= 0.945; bb *= 0.894; }
+        d[i] = rr; d[i+1] = gg; d[i+2] = bb; d[i+3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    return canvas;
+  }
+
   /* ============================ effect registry ============================ */
+
+  const GROUPS = [
+    {id:'wreck',  icon:'💀', name:'Wreck'},
+    {id:'warp',   icon:'🌀', name:'Warp'},
+    {id:'glitch', icon:'⚡', name:'Glitch'},
+    {id:'color',  icon:'🌡️', name:'Color'},
+    {id:'art',    icon:'🖌️', name:'Art'},
+  ];
 
   const EFFECTS = [
     {
-      id:'jpegify', name:'JPEGify', icon:'📠',
-      tagline:'the ancient art of saving as .jpg fifty times in a row',
+      id:'jpegify', name:'JPEGify', icon:'📠', group:'wreck',
+      tagline:'save it as a jpg over and over until it gives up',
       apply: applyJPEGify,
       params:[
-        {key:'quality', label:'Quality per save', type:'range', min:1, max:100, step:1, default:15, suffix:'%'},
-        {key:'iterations', label:'Number of re-saves', type:'range', min:1, max:30, step:1, default:6},
+        {key:'quality', label:'Quality on each save', type:'range', min:1, max:100, step:1, default:15, suffix:'%'},
+        {key:'iterations', label:'How many saves', type:'range', min:1, max:30, step:1, default:6},
       ]
     },
     {
-      id:'deepfry', name:'Deep Fryer', icon:'🍳',
-      tagline:'saturation, contrast, and deep regret',
+      id:'deepfry', name:'Deep Fryer', icon:'🍳', group:'wreck',
+      tagline:'way too much of everything, on purpose',
       apply: applyDeepFry,
       presets:[
         {name:'Mild', values:{saturation:18,contrast:14,sharpen:1,noise:5,warmth:10,jpegQuality:60,jpegPasses:1,lensFlare:false,stickers:false}},
@@ -983,21 +1923,21 @@
         {key:'noise', label:'Grain', type:'range', min:0, max:50, step:1, default:15},
         {key:'warmth', label:'Warm tint', type:'range', min:0, max:60, step:1, default:25},
         {key:'jpegQuality', label:'JPEG quality', type:'range', min:1, max:100, step:1, default:22},
-        {key:'jpegPasses', label:'JPEG re-saves', type:'range', min:0, max:10, step:1, default:2},
+        {key:'jpegPasses', label:'JPEG saves', type:'range', min:0, max:10, step:1, default:2},
         {key:'lensFlare', label:'Lens flares', type:'checkbox', default:true},
         {key:'stickers', label:'Emoji stickers', type:'checkbox', default:false},
       ]
     },
     {
-      id:'pixelate', name:'Pixelate', icon:'🧊',
-      tagline:'delete information on purpose',
+      id:'pixelate', name:'Pixelate', icon:'🧊', group:'wreck',
+      tagline:'throw away detail on purpose',
       apply: applyPixelate,
       params:[
         {key:'blockSize', label:'Block size', type:'range', min:2, max:60, step:1, default:14, suffix:'px'},
       ]
     },
     {
-      id:'posterize', name:'Posterize', icon:'🎨',
+      id:'posterize', name:'Posterize', icon:'🎨', group:'wreck',
       tagline:'fewer colors, more feelings',
       apply: applyPosterize,
       params:[
@@ -1005,18 +1945,18 @@
       ]
     },
     {
-      id:'glitch', name:'Glitch', icon:'⚡',
-      tagline:'datamosh-adjacent chaos',
+      id:'glitch', name:'Glitch', icon:'⚡', group:'glitch',
+      tagline:'a broken video signal, frozen in place',
       apply: applyGlitch,
       params:[
         {key:'rgbShift', label:'Channel split', type:'range', min:0, max:30, step:1, default:6, suffix:'px'},
-        {key:'sliceCount', label:'Slice count', type:'range', min:0, max:60, step:1, default:18},
-        {key:'maxShift', label:'Slice jitter', type:'range', min:0, max:80, step:1, default:22, suffix:'px'},
+        {key:'sliceCount', label:'Number of slices', type:'range', min:0, max:60, step:1, default:18},
+        {key:'maxShift', label:'Slice shift', type:'range', min:0, max:80, step:1, default:22, suffix:'px'},
         {key:'scanlines', label:'Scanlines', type:'checkbox', default:true},
       ]
     },
     {
-      id:'vhs', name:'VHS', icon:'📼',
+      id:'vhs', name:'VHS', icon:'📼', group:'glitch',
       tagline:'rewound one too many times',
       apply: applyVHS,
       params:[
@@ -1028,32 +1968,32 @@
       ]
     },
     {
-      id:'dither', name:'Dither', icon:'⬛',
-      tagline:'newspaper from the year 1998',
+      id:'dither', name:'Dither', icon:'⬛', group:'wreck',
+      tagline:'looks like an old newspaper or a 90s game',
       apply: applyDither,
       params:[
         {key:'mode', label:'Pattern', type:'select', default:'floyd', options:[
-          {value:'floyd', label:'Floyd–Steinberg'},
+          {value:'floyd', label:'Floyd-Steinberg'},
           {value:'ordered', label:'Ordered (Bayer)'},
           {value:'halftone', label:'Halftone dots'},
         ]},
         {key:'levels', label:'Levels', type:'range', min:2, max:8, step:1, default:2},
-        {key:'dotSize', label:'Dot spacing (halftone)', type:'range', min:3, max:24, step:1, default:8, suffix:'px'},
+        {key:'dotSize', label:'Dot size (halftone)', type:'range', min:3, max:24, step:1, default:8, suffix:'px'},
         {key:'color', label:'Keep color', type:'checkbox', default:false},
       ]
     },
     {
-      id:'chroma', name:'Chromatic Aberration', icon:'🌈',
-      tagline:'lens abuse, digitally simulated',
+      id:'chroma', name:'Chromatic Aberration', icon:'🌈', group:'wreck',
+      tagline:'the colors drift apart like a cheap lens',
       apply: applyChromaAberration,
       params:[
-        {key:'offset', label:'Offset', type:'range', min:0, max:25, step:1, default:6, suffix:'px'},
+        {key:'offset', label:'Color offset', type:'range', min:0, max:25, step:1, default:6, suffix:'px'},
         {key:'angle', label:'Angle', type:'range', min:0, max:360, step:1, default:0, suffix:'°'},
       ]
     },
     {
-      id:'oilpaint', name:'Oil Paint', icon:'🖌️',
-      tagline:'renaissance, if the renaissance had lag',
+      id:'oilpaint', name:'Oil Paint', icon:'🖌️', group:'art',
+      tagline:'a classic painting, made by a browser tab',
       apply: applyOilPaint,
       presets:[
         {name:'Museum Portrait', values:{resolution:420, radius:3, levels:9, strokes:55, desaturate:20, shadows:45, canvasTexture:50, vignette:35}},
@@ -1061,19 +2001,19 @@
         {name:'Heavy Impasto', values:{resolution:260, radius:4, levels:6, strokes:85, desaturate:30, shadows:60, canvasTexture:65, vignette:50}},
       ],
       params:[
-        {key:'resolution', label:'Detail / resolution', type:'range', min:120, max:900, step:10, default:480, suffix:'px'},
+        {key:'resolution', label:'Detail', type:'range', min:120, max:900, step:10, default:480, suffix:'px'},
         {key:'radius', label:'Brush radius', type:'range', min:1, max:5, step:1, default:3, suffix:'px'},
-        {key:'levels', label:'Color buckets', type:'range', min:4, max:20, step:1, default:10},
-        {key:'strokes', label:'Visible brush strokes', type:'range', min:0, max:100, step:1, default:40, suffix:'%'},
-        {key:'desaturate', label:'Desaturation', type:'range', min:0, max:100, step:1, default:15, suffix:'%'},
-        {key:'shadows', label:'Deepen shadows', type:'range', min:0, max:100, step:1, default:35, suffix:'%'},
-        {key:'canvasTexture', label:'Aged canvas texture', type:'range', min:0, max:100, step:1, default:30, suffix:'%'},
+        {key:'levels', label:'Color groups', type:'range', min:4, max:20, step:1, default:10},
+        {key:'strokes', label:'Brush strokes', type:'range', min:0, max:100, step:1, default:40, suffix:'%'},
+        {key:'desaturate', label:'Fade colors', type:'range', min:0, max:100, step:1, default:15, suffix:'%'},
+        {key:'shadows', label:'Darker shadows', type:'range', min:0, max:100, step:1, default:35, suffix:'%'},
+        {key:'canvasTexture', label:'Canvas texture', type:'range', min:0, max:100, step:1, default:30, suffix:'%'},
         {key:'vignette', label:'Vignette', type:'range', min:0, max:100, step:1, default:25, suffix:'%'},
       ]
     },
     {
-      id:'filters', name:'Sketch Lab', icon:'🔍',
-      tagline:'grayscale, invert, emboss & friends',
+      id:'filters', name:'Sketch Lab', icon:'🔍', group:'color',
+      tagline:'grayscale, invert, emboss and more',
       apply: applyFilters,
       params:[
         {key:'mode', label:'Filter', type:'select', default:'grayscale', options:[
@@ -1084,6 +2024,241 @@
           {value:'edge', label:'Edge detect'},
         ]},
         {key:'intensity', label:'Intensity', type:'range', min:0, max:100, step:1, default:100, suffix:'%'},
+      ]
+    },
+
+    /* ---------- warp ---------- */
+    {
+      id:'swirl', name:'Swirl', icon:'🌀', group:'warp',
+      tagline:'grab the middle and twist',
+      apply: applySwirl,
+      params:[
+        {key:'strength', label:'Twist', type:'range', min:-10, max:10, step:0.5, default:4},
+        {key:'radius', label:'Size', type:'range', min:10, max:150, step:1, default:80, suffix:'%'},
+        {key:'centerX', label:'Center X', type:'range', min:0, max:100, step:1, default:50, suffix:'%'},
+        {key:'centerY', label:'Center Y', type:'range', min:0, max:100, step:1, default:50, suffix:'%'},
+      ]
+    },
+    {
+      id:'bulge', name:'Bulge & Pinch', icon:'🔮', group:'warp',
+      tagline:'a fisheye lens, or a face squeezed like a stress ball',
+      apply: applyBulge,
+      params:[
+        {key:'strength', label:'Bulge / pinch', type:'range', min:-100, max:100, step:1, default:70},
+        {key:'radius', label:'Size', type:'range', min:10, max:150, step:1, default:70, suffix:'%'},
+        {key:'centerX', label:'Center X', type:'range', min:0, max:100, step:1, default:50, suffix:'%'},
+        {key:'centerY', label:'Center Y', type:'range', min:0, max:100, step:1, default:50, suffix:'%'},
+      ]
+    },
+    {
+      id:'wave', name:'Wave Warp', icon:'🌊', group:'warp',
+      tagline:'like looking through heat haze',
+      apply: applyWave,
+      params:[
+        {key:'direction', label:'Direction', type:'select', default:'horizontal', options:[
+          {value:'horizontal', label:'Sideways ripples'},
+          {value:'vertical', label:'Up and down ripples'},
+          {value:'both', label:'Both'},
+        ]},
+        {key:'amplitude', label:'Wave height', type:'range', min:0, max:80, step:1, default:18, suffix:'px'},
+        {key:'wavelength', label:'Wave length', type:'range', min:8, max:400, step:2, default:90, suffix:'px'},
+        {key:'phase', label:'Shift the wave', type:'range', min:0, max:360, step:1, default:0, suffix:'°'},
+        {key:'wobble', label:'Extra wobble', type:'range', min:0, max:100, step:1, default:0, suffix:'%'},
+      ]
+    },
+    {
+      id:'kaleido', name:'Kaleidoscope', icon:'💠', group:'warp',
+      tagline:'one slice of your image, mirrored all the way around',
+      apply: applyKaleido,
+      params:[
+        {key:'segments', label:'Segments', type:'range', min:2, max:16, step:1, default:6},
+        {key:'rotation', label:'Rotation', type:'range', min:0, max:360, step:1, default:0, suffix:'°'},
+        {key:'zoom', label:'Zoom', type:'range', min:40, max:250, step:1, default:100, suffix:'%'},
+        {key:'pickX', label:'Slice position X', type:'range', min:0, max:100, step:1, default:50, suffix:'%'},
+        {key:'pickY', label:'Slice position Y', type:'range', min:0, max:100, step:1, default:50, suffix:'%'},
+      ]
+    },
+    {
+      id:'zoomblur', name:'Zoom Blur', icon:'💨', group:'warp',
+      tagline:'warp speed, no seatbelt',
+      apply: applyZoomBlur,
+      params:[
+        {key:'strength', label:'Speed', type:'range', min:0, max:100, step:1, default:50, suffix:'%'},
+        {key:'samples', label:'Smoothness', type:'range', min:4, max:24, step:1, default:12},
+        {key:'centerX', label:'Center X', type:'range', min:0, max:100, step:1, default:50, suffix:'%'},
+        {key:'centerY', label:'Center Y', type:'range', min:0, max:100, step:1, default:50, suffix:'%'},
+      ]
+    },
+
+    /* ---------- glitch and digital ---------- */
+    {
+      id:'pixelsort', name:'Pixel Sort', icon:'📶', group:'glitch',
+      tagline:'pixels slide into streaks, sorted by brightness',
+      apply: applyPixelSort,
+      params:[
+        {key:'direction', label:'Direction', type:'select', default:'horizontal', options:[
+          {value:'horizontal', label:'Sideways'},
+          {value:'vertical', label:'Up and down'},
+        ]},
+        {key:'sortBy', label:'Sort by', type:'select', default:'brightness', options:[
+          {value:'brightness', label:'Brightness'},
+          {value:'hue', label:'Hue'},
+          {value:'saturation', label:'Saturation'},
+        ]},
+        {key:'low', label:'Darkest pixel to sort', type:'range', min:0, max:255, step:1, default:50},
+        {key:'high', label:'Brightest pixel to sort', type:'range', min:0, max:255, step:1, default:210},
+        {key:'maxLength', label:'Longest streak', type:'range', min:10, max:900, step:10, default:300, suffix:'px'},
+        {key:'reverse', label:'Flip the order', type:'checkbox', default:false},
+      ]
+    },
+    {
+      id:'datamosh', name:'Datamosh Smear', icon:'🫠', group:'glitch',
+      tagline:'blocks drag and melt like a corrupted video',
+      apply: applyDatamosh,
+      params:[
+        {key:'blockSize', label:'Block size', type:'range', min:8, max:96, step:2, default:32, suffix:'px'},
+        {key:'amount', label:'Blocks affected', type:'range', min:0, max:100, step:1, default:30, suffix:'%'},
+        {key:'smear', label:'Smear length', type:'range', min:0, max:300, step:5, default:70, suffix:'px'},
+        {key:'drift', label:'Block drift', type:'range', min:0, max:120, step:2, default:24, suffix:'px'},
+      ]
+    },
+    {
+      id:'ascii', name:'ASCII Art', icon:'💻', group:'glitch',
+      tagline:'your photo, typed out one character at a time',
+      apply: applyAscii,
+      params:[
+        {key:'look', label:'Style', type:'select', default:'green', options:[
+          {value:'green', label:'Green terminal'},
+          {value:'bone', label:'Light on dark'},
+          {value:'paper', label:'Ink on paper'},
+          {value:'color', label:'Full color'},
+        ]},
+        {key:'charset', label:'Characters', type:'select', default:'classic', options:[
+          {value:'classic', label:'Classic'},
+          {value:'blocks', label:'Blocks'},
+          {value:'binary', label:'Binary'},
+          {value:'minimal', label:'Minimal'},
+        ]},
+        {key:'cellSize', label:'Character size', type:'range', min:5, max:24, step:1, default:9, suffix:'px'},
+        {key:'contrast', label:'Contrast', type:'range', min:50, max:250, step:5, default:130, suffix:'%'},
+        {key:'invert', label:'Invert', type:'checkbox', default:false},
+      ]
+    },
+    {
+      id:'emoji', name:'Emoji Mosaic', icon:'😎', group:'glitch',
+      tagline:'every block turns into the closest matching emoji',
+      apply: applyEmojiMosaic,
+      params:[
+        {key:'cellSize', label:'Emoji size', type:'range', min:8, max:48, step:1, default:18, suffix:'px'},
+        {key:'backdrop', label:'Color behind each emoji', type:'range', min:0, max:100, step:1, default:30, suffix:'%'},
+      ]
+    },
+
+    /* ---------- color and look ---------- */
+    {
+      id:'thermal', name:'Thermal Cam', icon:'🌡️', group:'color',
+      tagline:'heat vision, straight out of a monster movie',
+      apply: applyThermal,
+      params:[
+        {key:'palette', label:'Heat palette', type:'select', default:'heat', options:[
+          {value:'heat', label:'Classic heat'},
+          {value:'inferno', label:'Inferno'},
+          {value:'cold', label:'Cold'},
+          {value:'rainbow', label:'Rainbow'},
+          {value:'night', label:'Night vision'},
+        ]},
+        {key:'contrast', label:'Contrast', type:'range', min:50, max:250, step:5, default:130, suffix:'%'},
+        {key:'shift', label:'Heat level', type:'range', min:-60, max:60, step:1, default:0},
+        {key:'softness', label:'Softness', type:'range', min:0, max:8, step:1, default:2},
+        {key:'noise', label:'Sensor noise', type:'range', min:0, max:50, step:1, default:10},
+        {key:'hud', label:'Targeting overlay', type:'checkbox', default:true},
+      ]
+    },
+    {
+      id:'gradient', name:'Gradient Map', icon:'🌅', group:'color',
+      tagline:'swap every color for a fresh palette',
+      apply: applyGradientMap,
+      presets:[
+        {name:'Synthwave', values:{palette:'synthwave'}},
+        {name:'Toxic', values:{palette:'toxic'}},
+        {name:'Sunset', values:{palette:'sunset'}},
+        {name:'Blood Moon', values:{palette:'bloodmoon'}},
+      ],
+      params:[
+        {key:'palette', label:'Palette', type:'select', default:'synthwave', options:[
+          {value:'synthwave', label:'Synthwave'},
+          {value:'toxic', label:'Toxic'},
+          {value:'sunset', label:'Sunset'},
+          {value:'bloodmoon', label:'Blood Moon'},
+          {value:'ocean', label:'Ocean'},
+          {value:'bubblegum', label:'Bubblegum'},
+          {value:'cyanotype', label:'Cyanotype'},
+          {value:'chamber', label:'Chamber'},
+        ]},
+        {key:'contrast', label:'Contrast', type:'range', min:50, max:250, step:5, default:110, suffix:'%'},
+        {key:'brightness', label:'Brightness', type:'range', min:-100, max:100, step:1, default:0},
+        {key:'mix', label:'Blend with original', type:'range', min:0, max:100, step:1, default:100, suffix:'%'},
+        {key:'reverse', label:'Flip the palette', type:'checkbox', default:false},
+      ]
+    },
+    {
+      id:'neon', name:'Neon Edges', icon:'💡', group:'color',
+      tagline:'just the outlines, glowing in the dark',
+      apply: applyNeonEdges,
+      params:[
+        {key:'color', label:'Line color', type:'select', default:'image', options:[
+          {value:'image', label:'From the image'},
+          {value:'cyan', label:'Cyan'},
+          {value:'pink', label:'Hot pink'},
+          {value:'green', label:'Acid green'},
+          {value:'rainbow', label:'Rainbow by direction'},
+        ]},
+        {key:'sensitivity', label:'Sensitivity', type:'range', min:20, max:300, step:5, default:110, suffix:'%'},
+        {key:'cutoff', label:'Ignore faint edges', type:'range', min:0, max:100, step:1, default:25},
+        {key:'glow', label:'Glow', type:'range', min:0, max:100, step:1, default:60, suffix:'%'},
+        {key:'thickness', label:'Line thickness', type:'range', min:1, max:4, step:1, default:1, suffix:'px'},
+        {key:'ghost', label:'Show original behind', type:'range', min:0, max:60, step:1, default:0, suffix:'%'},
+      ]
+    },
+    {
+      id:'oldphoto', name:'Old Photo', icon:'📷', group:'color',
+      tagline:'found in a shoebox from 1974',
+      apply: applyOldPhoto,
+      params:[
+        {key:'fade', label:'Fading', type:'range', min:0, max:100, step:1, default:45, suffix:'%'},
+        {key:'sepia', label:'Sepia tint', type:'range', min:0, max:100, step:1, default:65, suffix:'%'},
+        {key:'grain', label:'Film grain', type:'range', min:0, max:60, step:1, default:18},
+        {key:'dust', label:'Dust and scratches', type:'range', min:0, max:100, step:1, default:40, suffix:'%'},
+        {key:'lightLeak', label:'Light leaks', type:'range', min:0, max:100, step:1, default:35, suffix:'%'},
+        {key:'vignette', label:'Vignette', type:'range', min:0, max:100, step:1, default:40, suffix:'%'},
+        {key:'border', label:'Photo border', type:'checkbox', default:false},
+      ]
+    },
+
+    /* ---------- art styles ---------- */
+    {
+      id:'comic', name:'Comic Book', icon:'🗯️', group:'art',
+      tagline:'thick ink lines, flat colors and halftone dots',
+      apply: applyComic,
+      params:[
+        {key:'levels', label:'Color levels', type:'range', min:2, max:8, step:1, default:4},
+        {key:'lineSens', label:'Line detail', type:'range', min:10, max:100, step:1, default:55},
+        {key:'lineWidth', label:'Line thickness', type:'range', min:1, max:4, step:1, default:2, suffix:'px'},
+        {key:'dots', label:'Halftone dots', type:'range', min:0, max:100, step:1, default:55, suffix:'%'},
+        {key:'dotSize', label:'Dot spacing', type:'range', min:4, max:14, step:1, default:7, suffix:'px'},
+      ]
+    },
+    {
+      id:'pencil', name:'Pencil Sketch', icon:'✏️', group:'art',
+      tagline:'graphite on paper',
+      apply: applyPencil,
+      params:[
+        {key:'radius', label:'Stroke size', type:'range', min:2, max:40, step:1, default:14, suffix:'px'},
+        {key:'darkness', label:'Pencil pressure', type:'range', min:0, max:100, step:1, default:45},
+        {key:'hatching', label:'Shading lines', type:'range', min:0, max:100, step:1, default:35},
+        {key:'grain', label:'Paper grain', type:'range', min:0, max:100, step:1, default:40},
+        {key:'color', label:'Color pencil', type:'range', min:0, max:100, step:1, default:0, suffix:'%'},
+        {key:'paper', label:'Warm paper', type:'checkbox', default:true},
       ]
     },
   ];
@@ -1097,6 +2272,7 @@
   });
 
   let currentTab = EFFECTS[0].id;
+  let currentGroup = EFFECTS[0].group;
   let originalCanvas = null;
   let renderTimer = null;
   let renderToken = 0;
@@ -1107,6 +2283,7 @@
   const dropZone = document.getElementById('dropZone');
   const fileInput = document.getElementById('fileInput');
   const workshop = document.getElementById('workshop');
+  const groupsEl = document.getElementById('groups');
   const tabsEl = document.getElementById('tabs');
   const controlsPanel = document.getElementById('controlsPanel');
   const controlsTitle = document.getElementById('controlsTitle');
@@ -1140,6 +2317,8 @@
     originalCanvas = newCanvas(w,h);
     originalCanvas.getContext('2d').drawImage(img, 0,0, w,h);
 
+    seed = (Math.random()*4294967296)>>>0;
+
     dropZone.hidden = true;
     workshop.hidden = false;
     filenameTouched = false;
@@ -1168,11 +2347,33 @@
     fileInput.value = '';
   });
 
-  /* ============================ tabs ============================ */
+  /* ============================ groups and tabs ============================ */
+
+  function buildGroups(){
+    groupsEl.innerHTML = '';
+    GROUPS.forEach(g=>{
+      const btn = document.createElement('button');
+      btn.className = 'group-btn' + (g.id===currentGroup ? ' active' : '');
+      btn.textContent = g.icon + ' ' + g.name;
+      btn.addEventListener('click', ()=>{
+        if(currentGroup === g.id) return;
+        currentGroup = g.id;
+        if(getEffect(currentTab).group !== g.id){
+          currentTab = EFFECTS.find(e=>e.group===g.id).id;
+        }
+        buildGroups();
+        buildTabs();
+        buildControls();
+        syncFilenameDefault();
+        render();
+      });
+      groupsEl.appendChild(btn);
+    });
+  }
 
   function buildTabs(){
     tabsEl.innerHTML = '';
-    EFFECTS.forEach(e=>{
+    EFFECTS.filter(e=>e.group===currentGroup).forEach(e=>{
       const btn = document.createElement('button');
       btn.className = 'tab-btn' + (e.id===currentTab ? ' active' : '');
       btn.innerHTML = `<span>${e.icon}</span><span>${e.name}</span>`;
@@ -1333,10 +2534,15 @@
     loadingFlag.classList.add('show');
     downloadBtn.disabled = true;
 
+    // let the "working on it" flag paint before the heavy effects block the thread
+    await new Promise(r=>setTimeout(r, 0));
+    if(myToken !== renderToken) return;
+
     const effect = getEffect(currentTab);
     const src = cloneCanvas(originalCanvas);
     let result;
     try{
+      resetRng();
       result = await effect.apply(src, params[effect.id]);
     }catch(err){
       console.error('render failed', err);
@@ -1368,6 +2574,7 @@
       else if(f.type === 'checkbox') params[effect.id][f.key] = Math.random() > 0.4;
       else if(f.type === 'select') params[effect.id][f.key] = f.options[Math.floor(Math.random()*f.options.length)].value;
     });
+    seed = (Math.random()*4294967296)>>>0;
     buildControls();
     render();
   });
@@ -1389,9 +2596,11 @@
       URL.revokeObjectURL(a.href);
     }, 'image/jpeg', 0.95);
   });
+  /*What the fuck is wrong
 
   /* ============================ init ============================ */
 
+  buildGroups();
   buildTabs();
   buildControls();
 })();
